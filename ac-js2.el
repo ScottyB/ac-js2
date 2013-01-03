@@ -2,10 +2,13 @@
 
 ;;; Commentary:
 ;;
+;; An attempt to get context sensitive completion in Emacs.
+;;
 
 ;; TODO:
 ;; - Add autocompletion for objects
 ;; - Add support for external libraries
+;; - Show function definition in doc string
 
 ;;; Code:
 
@@ -31,7 +34,6 @@
 (defvar js2ac-var-regex "[a-zA-Z_$][0-9a-zA-Z_$]+\\."
   "Regex string for characters used in a Javascript var. Assuming
   nobody wants to use unicode.")
-
 
 (defun js2ac-root-or-node (&optional node)
   (let ((outer-scope (or node (js2-node-at-point))))
@@ -70,13 +72,6 @@
 (defun js2r--is-var-function-expression (node)
   (and (js2-function-node-p node)
        (js2-var-init-node-p (js2-node-parent node))))
-
-(defun js2ac-var-name (node)
-  "Returns the name node"
-  (js2-name-node-name
-   (js2-var-init-node-target (if (js2-var-init-node-p node)
-                                 node
-                               (js2-node-parent node)))))
 
 (defun js2ac-determine-node-name (node)
   (cond
@@ -133,22 +128,14 @@
           (if js2ac-add-browser-externs js2-browser-externs)))
 
 (defun js2ac-ac-candidates()
-  (message "Autocomplete candidates working")
-  (if (looking-back "\\.")
+  (if (not (looking-back "\\."))
       ;; TODO: Need to check for prototype chain
-      (js2ac-get-object-properties)
-    (js2ac-add-extra-completions
-     (mapcar (lambda (node)
-               (let ((name (symbol-name (first node))))
-                 (unless (string= name (thing-at-point 'symbol)) name)))
-             (js2ac-get-names-in-scope)))))
-
-;; (makunbound 'js2ac-complete)
-;; (makunbound 'js2ac-complete-on-dot)
-(defun js2ac-complete-on-dot ()
-  (interactive)
-  (let ((ac-expand-on-auto-complete nil))
-    (auto-complete '(ac-source-js2))))
+      ;; (js2ac-get-object-properties)
+      (js2ac-add-extra-completions
+       (mapcar (lambda (node)
+                 (let ((name (symbol-name (first node))))
+                   (unless (string= name (thing-at-point 'symbol)) name)))
+               (js2ac-get-names-in-scope)))))
 
 (defun js2ac-prefix()
   (or (ac-prefix-default) (ac-prefix-c-dot)))
@@ -167,4 +154,3 @@
 (provide 'ac-js2)
 
 ;;; ac-js2.el ends here
-;; js2-mode-dev-mode-p
