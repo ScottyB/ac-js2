@@ -1,21 +1,37 @@
 ;;; ac-js2.el --- Autocomplete source for Js2-mode
 
-
 ;;; Commentary:
 ;;
+
 ;; TODO:
-;; - Add autocompletion for function prototypes
+;; - Add autocompletion for objects
 ;; - Add support for external libraries
-;; - Add support for dictionaries
-;; - Add support for Javascript externs provided by js2
+
+;;; Code:
 
 (require 'js2-mode)
 (require 'auto-complete)
 
-;;; Code:
+(defgroup ac-js2 nil
+  "Auto-completion for js2-mode."
+  :group 'completion
+  :prefix "js2ac-")
+
+;;; Configuration variables
+
+(defcustom js2ac-add-ecma-262-externs t
+  "If non-nil add `js2-ecma-262-externs' to completion candidates.")
+
+(defcustom js2ac-add-browser-externs t
+  "If non-nil add `js2-browser-externs' to completion candidates.")
+
+(defcustom js2ac-add-keywords t
+  "If non-nil add `js2-keywords' to completion candidates.")
+
 (defvar js2ac-var-regex "[a-zA-Z_$][0-9a-zA-Z_$]+\\."
   "Regex string for characters used in a Javascript var. Assuming
   nobody wants to use unicode.")
+
 
 (defun js2ac-root-or-node (&optional node)
   (let ((outer-scope (or node (js2-node-at-point))))
@@ -31,6 +47,7 @@
       (setq scope (js2-scope-parent-scope scope)))
     result))
 
+;; This function is currently broken
 (defun js2ac-find-symbol-in-table (name node)
   (let* ((scope (js2-node-get-enclosing-scope node))
          (scope (js2-get-defining-scope scope name))
@@ -99,8 +116,6 @@
                                            (replace-regexp-in-string "^[ \t\n*/*]+" "" string))))
     string))
 
-
-
 (defun js2ac-get-object-properties ()
   (let ((end (1- (point)))
         beg
@@ -111,14 +126,20 @@
       (setq name (buffer-substring-no-properties (1+ beg) end))
       (setq result (js2ac-find-symbol-in-table name (js2-node-at-point))))))
 
+(defun js2ac-add-extra-completions (completions)
+  (append completions
+          (if js2ac-add-keywords js2-keywords)
+          (if js2ac-add-ecma-262-externs js2-ecma-262-externs)
+          (if js2ac-add-browser-externs js2-browser-externs)))
+
 (defun js2ac-ac-candidates()
   (message "Autocomplete candidates working")
   (if (looking-back "\\.")
       ;; TODO: Need to check for prototype chain
       (js2ac-get-object-properties)
-    (mapcar (lambda (node)
+    (js2ac-add-extra-completions (mapcar (lambda (node)
               (symbol-name (first node)))
-            (js2ac-get-names-in-scope))))
+                    (js2ac-get-names-in-scope)))))
 
 ;; (makunbound 'js2ac-complete)
 ;; (makunbound 'js2ac-complete-on-dot)
