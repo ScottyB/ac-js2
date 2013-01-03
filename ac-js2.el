@@ -109,10 +109,10 @@
   (let ((end (1- (point)))
         beg
         name
-        (code (buffer-string))
+        (code (buffer-substring-no-properties (point-min) (point-max)))
         result)
     (save-excursion
-      (setq beg (+ (skip-chars-backward "[a-zA-Z_$][0-9a-zA-Z_$]+\\.") end 1))
+      (setq beg (+ (skip-chars-backward "[a-zA-Z_$][0-9a-zA-Z_$()]+\\.") end 1))
       (setq name (buffer-substring-no-properties beg end)))
     (with-temp-buffer
       (insert code)
@@ -131,17 +131,17 @@
 
 (defun js2ac-skewer-result-callback (result)
   ""
-  (if (skewer-success-p result)
-      (let ((value (cdr (assoc 'value result))))
-        (setq js2ac-skewer-candidates (append value nil)))))
+  (let ((value (cdr (assoc 'value result))))
+    (if (and (skewer-success-p result)
+             (not (member value '("true" "false" "undefined" "null"))))
+        (setq js2ac-skewer-candidates (append value nil))
+      (setq js2ac-skewer-candidates nil))))
 
 ;; Auto-complete settings
 
 (defun js2ac-ac-candidates()
-  (setq ac-disable-inline t)
   (if (looking-back "\\.")
       (progn
-        ;; (setq js2ac-skewer-candidates nil)
         (js2ac-get-object-properties)
         js2ac-skewer-candidates)
     (js2ac-add-extra-completions
