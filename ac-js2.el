@@ -137,9 +137,11 @@
   (if (looking-back "\\.")
       ;; TODO: Need to check for prototype chain
       (js2ac-get-object-properties)
-    (js2ac-add-extra-completions (mapcar (lambda (node)
-              (symbol-name (first node)))
-                    (js2ac-get-names-in-scope)))))
+    (js2ac-add-extra-completions
+     (mapcar (lambda (node)
+               (let ((name (symbol-name (first node))))
+                 (unless (string= name (thing-at-point 'symbol)) name)))
+             (js2ac-get-names-in-scope)))))
 
 ;; (makunbound 'js2ac-complete)
 ;; (makunbound 'js2ac-complete-on-dot)
@@ -150,6 +152,11 @@
 
 (defun js2ac-prefix()
   (or (ac-prefix-default) (ac-prefix-c-dot)))
+
+(defun js2ac-mode-sources ()
+  (setq ac-sources '(ac-source-js2)))
+
+(add-hook 'js2-mode-hook 'js2ac-mode-sources)
 
 (ac-define-source "js2"
   '((candidates . js2ac-ac-candidates)
