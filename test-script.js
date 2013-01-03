@@ -1,39 +1,35 @@
 /**
- * Test comment
+ * A comment for the Setup object
  */
-var test = function() {
+var math = function() {
 
-  /**
-   * Outter var
-   */
-  var outter;
+  var constants = {
+    PI : 3.14,
+    E : 2.72
+  };
 
-  var newFn = (function () {
-    var inner1, inner2;
+  return {
+    /**
+     * Add two numbers together
+     */
+    sum : function(num1, num2) {return num1 + num2;},
 
-
-  });
+    /**
+     * Subtract two numbers
+     */
+    minus : function(num1, num2) {return num1 - num2;}
+  };
 
 };
 
-/*
- * More comments
- */
-function trial() {
+var moreMaths = {};
 
-}
-
-
-// Closures
-
-var sum = (function(var1, var2){
-  var aSumVar;
-  return var1 + var2;
-});
-
-
-
-var product = function(var1, var2) {
-  var aProVar;
-  return var1 * var2;
+moreMaths.product = function (num1, num2){
+  return num1 * num2;
 };
+
+moreMaths.divide = function (numerator, denominator){
+  return numerator / denominator;
+};
+
+var someMath = math();

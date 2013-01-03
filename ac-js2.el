@@ -6,7 +6,6 @@
 ;;
 
 ;; TODO:
-;; - Add autocompletion for objects
 ;; - Add support for external libraries
 ;; - Show function definition in doc string
 
@@ -14,6 +13,7 @@
 
 (require 'js2-mode)
 (require 'auto-complete)
+(require 'skewer-mode)
 
 (defgroup ac-js2 nil
   "Auto-completion for js2-mode."
@@ -105,21 +105,50 @@
                    (throw 'done (js2ac-tidy-comment comment))))))
          t)))))
 
-(defun js2ac-tidy-comment (comment)
-  (let* ((string (js2-node-string comment))
-         (string (replace-regexp-in-string "[ \t\n]$" ""
-                                           (replace-regexp-in-string "^[ \t\n*/*]+" "" string))))
-    string))
-
 (defun js2ac-get-object-properties ()
   (let ((end (1- (point)))
         beg
         name
+        (code (buffer-string))
         result)
     (save-excursion
-      (setq beg (+ (skip-chars-backward "[a-zA-Z_$][0-9a-zA-Z_$]+\\.") end))
-      (setq name (buffer-substring-no-properties (1+ beg) end))
-      (setq result (js2ac-find-symbol-in-table name (js2-node-at-point))))))
+      (setq beg (+ (skip-chars-backward "[a-zA-Z_$][0-9a-zA-Z_$]+\\.") end 1))
+      (setq name (buffer-substring-no-properties beg end)))
+    (with-temp-buffer
+      (insert code)
+      (delete-region beg (1+ end))
+      ;; Used for debugging (skewer-load-buffer)
+      (skewer-eval (buffer-string) #'skewer-post-minibuffer)
+      )
+    (skewer-eval name #'js2ac-skewer-result-callback)))
+
+;; Skewer integration
+
+(add-to-list 'skewer-callbacks 'js2ac-skewer-result-callback)
+
+(defvar js2ac-skewer-candidates '()
+  "Results from skewering")
+
+(defun js2ac-skewer-result-callback (result)
+  ""
+  (if (skewer-success-p result)
+      (let ((value (cdr (assoc 'value result))))
+        (setq js2ac-skewer-candidates (append value nil)))))
+
+;; Auto-complete settings
+
+(defun js2ac-ac-candidates()
+  (setq ac-disable-inline t)
+  (if (looking-back "\\.")
+      (progn
+        ;; (setq js2ac-skewer-candidates nil)
+        (js2ac-get-object-properties)
+        js2ac-skewer-candidates)
+    (js2ac-add-extra-completions
+     (mapcar (lambda (node)
+               (let ((name (symbol-name (first node))))
+                 (unless (string= name (thing-at-point 'symbol)) name)))
+             (js2ac-get-names-in-scope)))))
 
 (defun js2ac-add-extra-completions (completions)
   (append completions
@@ -127,15 +156,11 @@
           (if js2ac-add-ecma-262-externs js2-ecma-262-externs)
           (if js2ac-add-browser-externs js2-browser-externs)))
 
-(defun js2ac-ac-candidates()
-  (if (not (looking-back "\\."))
-      ;; TODO: Need to check for prototype chain
-      ;; (js2ac-get-object-properties)
-      (js2ac-add-extra-completions
-       (mapcar (lambda (node)
-                 (let ((name (symbol-name (first node))))
-                   (unless (string= name (thing-at-point 'symbol)) name)))
-               (js2ac-get-names-in-scope)))))
+(defun js2ac-tidy-comment (comment)
+  (let* ((string (js2-node-string comment))
+         (string (replace-regexp-in-string "[ \t\n]$" ""
+                                           (replace-regexp-in-string "^[ \t\n*/*]+" "" string))))
+    string))
 
 (defun js2ac-prefix()
   (or (ac-prefix-default) (ac-prefix-c-dot)))
