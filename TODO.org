@@ -1,0 +1,10 @@
+* Improve handling of errors from Skewer
+* Add Support for external libraries
+  - Start with jQuery
+* Possibly support multiple files
+* Improve completion of properties
+  - Look at completing in a closure
+  - Extend current property completion to handle chaining
+* Show function interface in document popup
+* Add tests
+* Add to package manager

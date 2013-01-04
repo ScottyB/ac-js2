@@ -37,10 +37,4 @@ Features
 
 TODO
 ----
- * Improve handling of errors from Skewer
- * Add Support for external libraries
- * Possibly support multiple files
- * Improve completion of properties
- * Show function interface in document popup
- * Add tests
- * Add to package manager
+Please see TODO.org
