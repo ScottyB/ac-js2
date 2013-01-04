@@ -109,17 +109,14 @@
   (let ((end (1- (point)))
         beg
         name
-        (code (buffer-substring-no-properties (point-min) (point-max)))
-        result)
-    (save-excursion
-      (setq beg (+ (skip-chars-backward "[a-zA-Z_$][0-9a-zA-Z_$()]+\\.") end 1))
-      (setq name (buffer-substring-no-properties beg end)))
+        (code (buffer-substring-no-properties (point-min) (point-max))))
     (with-temp-buffer
       (insert code)
+      (goto-char end)
+      (setq beg (+ (skip-chars-backward "[a-zA-Z_$][0-9a-zA-Z_$()]+\\.") end))
+      (setq name (buffer-substring-no-properties beg end))
       (delete-region beg (1+ end))
-      ;; Used for debugging (skewer-load-buffer)
-      (skewer-eval (buffer-string) #'skewer-post-minibuffer)
-      )
+      (skewer-load-buffer))
     (skewer-eval name #'js2ac-skewer-result-callback)))
 
 ;; Skewer integration
@@ -140,15 +137,20 @@
 ;; Auto-complete settings
 
 (defun js2ac-ac-candidates()
-  (if (looking-back "\\.")
-      (progn
-        (js2ac-get-object-properties)
-        js2ac-skewer-candidates)
-    (js2ac-add-extra-completions
-     (mapcar (lambda (node)
-               (let ((name (symbol-name (first node))))
-                 (unless (string= name (thing-at-point 'symbol)) name)))
-             (js2ac-get-names-in-scope)))))
+  (let ((node (js2-node-parent (js2-node-at-point (1- (point))))))
+    (cond
+     ((looking-back "\\.")
+      (js2ac-get-object-properties)
+      js2ac-skewer-candidates)
+     ;; ((js2-prop-get-node-p node)
+
+     ;;  )
+     (t
+      (js2ac-add-extra-completions
+       (mapcar (lambda (node)
+                 (let ((name (symbol-name (first node))))
+                   (unless (string= name (thing-at-point 'symbol)) name)))
+               (js2ac-get-names-in-scope)))))))
 
 (defun js2ac-add-extra-completions (completions)
   (append completions
