@@ -15,6 +15,7 @@
 (require 'js2-mode)
 (require 'auto-complete)
 (require 'skewer-mode)
+(require 'json)
 
 (defgroup ac-js2 nil
   "Auto-completion for js2-mode."
