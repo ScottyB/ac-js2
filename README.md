@@ -19,7 +19,7 @@ Installation
 ------------
 
 * Make sure all dependencies are on the load path
-* Add `(require 'ac-js2)' to your init.el file
+* Add `(require 'ac-js2)` to your init.el file
 * Start Skewer with `run-skewer'
 * Open up a Javascript file and test out the auto completion
 
@@ -33,7 +33,7 @@ Features
  * Popup documentation for variables and function names in scope (jsdoc and block)
  * Partial support for completing properties
 
-![Completion](/images/completion.png "completion")
+![Completion](https://raw.github.com/ScottyB/ac-js2/master/images/completion.png)
 
 TODO
 ----
