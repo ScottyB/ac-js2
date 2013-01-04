@@ -105,17 +105,17 @@
                    (throw 'done (js2ac-tidy-comment comment))))))
          t)))))
 
-(defun js2ac-get-object-properties ()
-  (let ((end (1- (point)))
-        beg
-        name
-        (code (buffer-substring-no-properties (point-min) (point-max))))
+(defun js2ac-get-object-properties (beg object)
+  "Find properties of OBJECT for completion. Text from BEG to
+point is removed from the buffer before being sent to the browser
+to prevent an error from occuring."
+  (let ((code (buffer-substring-no-properties (point-min) (point-max)))
+        (name (or object (buffer-substring-no-properties beg end)))
+        (end (point)))
     (with-temp-buffer
       (insert code)
       (goto-char end)
-      (setq beg (+ (skip-chars-backward "[a-zA-Z_$][0-9a-zA-Z_$()]+\\.") end))
-      (setq name (buffer-substring-no-properties beg end))
-      (delete-region beg (1+ end))
+      (delete-region beg end)
       (skewer-load-buffer))
     (skewer-eval name #'js2ac-skewer-result-callback)))
 
@@ -137,10 +137,15 @@
 ;; Auto-complete settings
 
 (defun js2ac-ac-candidates()
-  (let ((node (js2-node-parent (js2-node-at-point (1- (point))))))
+  (let ((node (js2-node-parent (js2-node-at-point (1- (point)))))
+        beg
+        name)
     (cond
      ((looking-back "\\.")
-      (js2ac-get-object-properties)
+      (save-excursion
+        (setq beg (and (skip-chars-backward "[a-zA-Z_$][0-9a-zA-Z_$()]+\\.") (point))))
+        (setq name (buffer-substring-no-properties beg (1- (point))))
+        (js2ac-get-object-properties beg name)
       js2ac-skewer-candidates)
      ;; ((js2-prop-get-node-p node)
 
