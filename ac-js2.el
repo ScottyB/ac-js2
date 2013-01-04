@@ -116,7 +116,9 @@ to prevent an error from occuring."
       (insert code)
       (goto-char end)
       (delete-region beg end)
-      (skewer-load-buffer))
+      (skewer-eval (buffer-string) #'skewer-post-minibuffer)
+      ;; (skewer-load-buffer)
+      )
     (skewer-eval name #'js2ac-skewer-result-callback)))
 
 ;; Skewer integration
@@ -147,9 +149,12 @@ to prevent an error from occuring."
         (setq name (buffer-substring-no-properties beg (1- (point))))
         (js2ac-get-object-properties beg name)
       js2ac-skewer-candidates)
-     ;; ((js2-prop-get-node-p node)
-
-     ;;  )
+     ((js2-prop-get-node-p node)
+      (setq beg (js2-node-abs-pos node))
+      (setq node (js2-prop-get-node-left node))
+      (setq name (if (js2-call-node-p node) (js2-node-string node) (js2-name-node-name node)))
+      (js2ac-get-object-properties beg name)
+      js2ac-skewer-candidates)
      (t
       (js2ac-add-extra-completions
        (mapcar (lambda (node)
