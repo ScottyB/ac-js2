@@ -33,6 +33,9 @@
 (defcustom js2ac-add-keywords t
   "If non-nil add `js2-keywords' to completion candidates.")
 
+(defcustom js2ac-external-javscript-libraries '()
+  "List of absolute paths to external Javascript libraries")
+
 ;;; Skewer integration
 
 (defvar js2ac-skewer-candidates '()
@@ -45,18 +48,12 @@
   (cdr (assoc-string name js2ac-skewer-candidates)))
 
 (defun js2ac-get-object-properties (beg object)
-  "Find properties of OBJECT for completion. Text from BEG to
-point is removed from the buffer before being sent to the browser
-to prevent an error from occuring."
+  "Find properties of OBJECT for completion. BEG is the position
+in the buffer of the name of the OBJECT."
   (let ((code (buffer-substring-no-properties (point-min) (point-max)))
         (name (or object (buffer-substring-no-properties beg end)))
         (end (point)))
-      (with-temp-buffer
-        (insert code)
-        (goto-char end)
-        (delete-region beg end)
-        (skewer-eval (buffer-string) #'skewer-post-minibuffer))
-      (skewer-eval name #'js2ac-skewer-result-callback :type "complete")))
+    (skewer-eval name #'js2ac-skewer-result-callback :type "complete")))
 
 (defun js2ac-skewer-result-callback (result)
   "Callback called once browser has evaluated the properties for an object."
@@ -80,8 +77,9 @@ to prevent an error from occuring."
       (js2ac-get-object-properties beg name)
       (js2ac-skewer-completion-candidates name))
      ((looking-back "\\.")
+      ;; TODO: Need to come up with a better way to extract object than this regex!!
       (save-excursion
-        (setq beg (and (skip-chars-backward "[a-zA-Z_$][0-9a-zA-Z_$\"())]+\\.") (point))))
+        (setq beg (and (skip-chars-backward "[a-zA-Z_$][0-9a-zA-Z_$#\"())]+\\.") (point))))
       (setq name (buffer-substring-no-properties beg (1- (point))))
       (js2ac-get-object-properties beg name)
       (js2ac-skewer-completion-candidates name))
@@ -122,10 +120,22 @@ property then find its inital value or function interface."
   (or (ac-prefix-default) (ac-prefix-c-dot)))
 
 (defun js2ac-mode-sources ()
-  (if (not skewer-clients) (run-skewer))
+  (when (not skewer-clients)
+    (run-skewer)
+    (mapcar (lambda (library)
+              (with-temp-buffer
+                (insert-file-contents library)
+                (skewer-load-buffer))) js2ac-external-javscript-libraries))
+  (skewer-load-buffer)
   (setq ac-sources '(ac-source-js2)))
 
 (add-hook 'js2-mode-hook 'js2ac-mode-sources)
+
+(defun js2ac-skewer-load-buffer ()
+  (if (string= major-mode "js2-mode")
+      (skewer-load-buffer)))
+
+(add-hook 'before-save-hook 'js2ac-skewer-load-buffer)
 
 (ac-define-source "js2"
   '((candidates . js2ac-ac-candidates)

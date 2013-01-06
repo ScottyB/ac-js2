@@ -1,6 +1,5 @@
-* Improve handling of errors from Skewer
 * Add Support for external libraries
-  - Start with jQuery
+  - Need to handle a function call with params
 * Possibly support multiple files
 * Improve completion of properties
   - Look at completing in a closure
@@ -12,3 +11,4 @@
 * Suport auto completion in the repl
 * Fix:
   - Bug with showing wrong candidates when switching objects
+  - Bug with opening too many browser windows
