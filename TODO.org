@@ -12,3 +12,4 @@
 * Fix:
   - Bug with showing wrong candidates when switching objects
   - Bug with opening too many browser windows
+  - Bug with auto completion sometimes requiring "." to be entered twice
