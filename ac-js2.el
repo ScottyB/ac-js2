@@ -51,9 +51,6 @@ to prevent an error from occuring."
   (let ((code (buffer-substring-no-properties (point-min) (point-max)))
         (name (or object (buffer-substring-no-properties beg end)))
         (end (point)))
-    ;; (if (not skewer-clients)
-    ;;     (progn (setq js2ac-skewer-candidates nil)
-    ;;            (message "No skewer client connected."))
       (with-temp-buffer
         (insert code)
         (goto-char end)
@@ -96,12 +93,14 @@ to prevent an error from occuring."
                (js2ac-get-names-in-scope)))))))
 
 (defun js2ac-ac-document (name)
+  "Find documentation for NAME in local buffer. If name is a
+property then find its inital value or function interface."
   (let* ((scope (js2ac-root-or-node))
          (scope (js2-get-defining-scope scope name))
          pos
          beg-comment
          end-comment)
-    ;; TODO don't check for doc string in buffer if completion from skewer
+    ;; Fix up this to only check in buffer if variable or function
     (or (catch 'done
           (js2-visit-ast
            scope
