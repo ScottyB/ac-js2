@@ -13,14 +13,20 @@ An attempt at context sensitive auto-completion in Emacs using Js2-mode's parser
  * Variable and function names in current scope
  * Popup documentation for variables and function name in buffer (jsdoc and block)
  * Partial support for completing properties
- * Function interface or initial value for object properties
- * Experimental support for external libraries
 
 ![Completion](https://raw.github.com/ScottyB/ac-js2/master/images/function-interface.png)
+
+* Function interface or initial value for object properties
+ 
+![library](https://raw.github.com/ScottyB/ac-js2/master/images/external-library.png)
+
+ * Experimental support for external libraries
 
 See TODO.org for planned features.
 
 ## Installation
+
+Intergration with a package manager is planned soon.
 
 ### Dependencies:
 
