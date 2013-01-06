@@ -1,15 +1,13 @@
-* Add Support for external libraries
+* Features
   - Need to handle a function call with params
-* Possibly support multiple files
-* Improve completion of properties
+  - Possibly support multiple files
   - Look at completing in a closure
   - Extend current property completion to handle chaining
-* Show function interface in document popup
-  - Look at jedi.el for showing parameters when in function
-* Add tests
-* Add to a package manager
-* Suport auto completion in the repl
-* Fix:
-  - Bug with showing wrong candidates when switching objects
-  - Bug with opening too many browser windows
-  - Bug with auto completion sometimes requiring "." to be entered twice
+  - Look at jedi.el for showing parameters when in function parameter list
+  - Add tests
+  - Add to a package manager
+  - Suport auto completion in the repl
+* Bugs:
+  - show wrong candidates when switching objects first time
+  - open too many browser windows
+  - auto completion sometimes requires "." to be entered twice
