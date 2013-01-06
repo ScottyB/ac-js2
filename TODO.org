@@ -6,5 +6,9 @@
   - Look at completing in a closure
   - Extend current property completion to handle chaining
 * Show function interface in document popup
+  - Look at jedi.el for showing parameters when in function
 * Add tests
-* Add to package manager
+* Add to a package manager
+* Suport auto completion in the repl
+* Fix:
+  - Bug with showing wrong candidates when switching objects

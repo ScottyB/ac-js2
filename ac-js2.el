@@ -35,10 +35,14 @@
 
 ;;; Skewer integration
 
-(add-to-list 'skewer-callbacks 'js2ac-skewer-result-callback)
-
 (defvar js2ac-skewer-candidates '()
   "Cadidates obtained from skewering")
+
+(defun js2ac-skewer-completion-candidates (name)
+  (mapcar (lambda (candidate) (symbol-name (car candidate))) js2ac-skewer-candidates))
+
+(defun js2ac-skewer-document-candidates (name)
+  (cdr (assoc-string name js2ac-skewer-candidates)))
 
 (defun js2ac-get-object-properties (beg object)
   "Find properties of OBJECT for completion. Text from BEG to
@@ -47,18 +51,20 @@ to prevent an error from occuring."
   (let ((code (buffer-substring-no-properties (point-min) (point-max)))
         (name (or object (buffer-substring-no-properties beg end)))
         (end (point)))
-    (with-temp-buffer
-      (insert code)
-      (goto-char end)
-      (delete-region beg end)
-      (skewer-eval (buffer-string) #'skewer-post-minibuffer))
-    (skewer-eval name #'js2ac-skewer-result-callback)))
+    ;; (if (not skewer-clients)
+    ;;     (progn (setq js2ac-skewer-candidates nil)
+    ;;            (message "No skewer client connected."))
+      (with-temp-buffer
+        (insert code)
+        (goto-char end)
+        (delete-region beg end)
+        (skewer-eval (buffer-string) #'skewer-post-minibuffer))
+      (skewer-eval name #'js2ac-skewer-result-callback :type "complete")))
 
 (defun js2ac-skewer-result-callback (result)
-  "Callback called once browser as evaluated the properties for an object."
+  "Callback called once browser has evaluated the properties for an object."
   (let ((value (cdr (assoc 'value result))))
-    (if (and (skewer-success-p result)
-             (not (member value '("true" "false" "undefined" "null"))))
+    (if (and (skewer-success-p result) value)
         (setq js2ac-skewer-candidates (append value nil))
       (setq js2ac-skewer-candidates nil))))
 
@@ -70,18 +76,18 @@ to prevent an error from occuring."
         beg
         name)
     (cond
-     ((looking-back "\\.")
-      (save-excursion
-        (setq beg (and (skip-chars-backward "[a-zA-Z_$][0-9a-zA-Z_$()]+\\.") (point))))
-        (setq name (buffer-substring-no-properties beg (1- (point))))
-        (js2ac-get-object-properties beg name)
-      js2ac-skewer-candidates)
      ((js2-prop-get-node-p node)
       (setq beg (js2-node-abs-pos node))
       (setq node (js2-prop-get-node-left node))
       (setq name (if (js2-call-node-p node) (js2-node-string node) (js2-name-node-name node)))
       (js2ac-get-object-properties beg name)
-      js2ac-skewer-candidates)
+      (js2ac-skewer-completion-candidates name))
+     ((looking-back "\\.")
+      (save-excursion
+        (setq beg (and (skip-chars-backward "[a-zA-Z_$][0-9a-zA-Z_$\"())]+\\.") (point))))
+      (setq name (buffer-substring-no-properties beg (1- (point))))
+      (js2ac-get-object-properties beg name)
+      (js2ac-skewer-completion-candidates name))
      (t
       (js2ac-add-extra-completions
        (mapcar (lambda (node)
@@ -95,25 +101,29 @@ to prevent an error from occuring."
          pos
          beg-comment
          end-comment)
-    (catch 'done
-      (js2-visit-ast
-       scope
-       (lambda (node end-p)
-         (unless end-p
-           (setq node-name (js2ac-determine-node-name node))
-           (when (string= node-name name)
-             (setq pos (js2-node-abs-pos node))
-             (dolist (comment (js2-ast-root-comments js2-mode-ast) nil)
-               (setq beg-comment (js2-node-abs-pos comment)
-                     end-comment (+ beg-comment (js2-node-len comment)))
-               (if (= 1 (- (line-number-at-pos pos) (line-number-at-pos end-comment)))
-                   (throw 'done (js2ac-tidy-comment comment))))))
-         t)))))
+    ;; TODO don't check for doc string in buffer if completion from skewer
+    (or (catch 'done
+          (js2-visit-ast
+           scope
+           (lambda (node end-p)
+             (unless end-p
+               (setq node-name (js2ac-determine-node-name node))
+               (when (string= node-name name)
+                 (setq pos (js2-node-abs-pos node))
+                 (dolist (comment (js2-ast-root-comments js2-mode-ast) nil)
+                   (setq beg-comment (js2-node-abs-pos comment)
+                         end-comment (+ beg-comment (js2-node-len comment)))
+                   (if (= 1 (- (line-number-at-pos pos) (line-number-at-pos end-comment)))
+                       (throw 'done (js2ac-tidy-comment comment))))))
+             t))
+          (js2ac-skewer-document-candidates name))
+        )))
 
 (defun js2ac-ac-prefix()
   (or (ac-prefix-default) (ac-prefix-c-dot)))
 
 (defun js2ac-mode-sources ()
+  (if (not skewer-clients) (run-skewer))
   (setq ac-sources '(ac-source-js2)))
 
 (add-hook 'js2-mode-hook 'js2ac-mode-sources)
@@ -136,7 +146,8 @@ to prevent an error from occuring."
 (defun js2ac-tidy-comment (comment)
   (let* ((string (js2-node-string comment))
          (string (replace-regexp-in-string "[ \t\n]$" ""
-                                           (replace-regexp-in-string "^[ \t\n*/*]+" "" string))))))
+                                           (replace-regexp-in-string "^[ \t\n*/*]+" "" string))))
+    string))
 
 (defun js2ac-root-or-node ()
   (let ((node (js2-node-at-point)))
