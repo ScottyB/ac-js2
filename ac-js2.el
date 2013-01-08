@@ -41,6 +41,14 @@
 (defvar js2ac-skewer-candidates '()
   "Cadidates obtained from skewering")
 
+(defvar js2ac-data-root (file-name-directory load-file-name)
+  "Location of data files needed for js2ac-on-skewer-load")
+
+(defun js2ac-on-skewer-load ()
+  (insert-file-contents (expand-file-name "skewer-addon.js" js2ac-data-root)))
+
+(add-hook 'skewer-js-hook 'js2ac-on-skewer-load)
+
 (defun js2ac-skewer-completion-candidates (name)
   (mapcar (lambda (candidate) (symbol-name (car candidate))) js2ac-skewer-candidates))
 

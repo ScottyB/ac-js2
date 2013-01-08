@@ -17,7 +17,7 @@ An attempt at context sensitive auto-completion in Emacs using Js2-mode's parser
 ![Completion](https://raw.github.com/ScottyB/ac-js2/master/images/function-interface.png)
 
 * Function interface or initial value for object properties
- 
+
 ![library](https://raw.github.com/ScottyB/ac-js2/master/images/external-library.png)
 
  * Experimental support for external libraries
@@ -30,11 +30,9 @@ Intergration with a package manager is planned soon.
 
 ### Dependencies:
 
- * [skewer-mode](https://github.com/ScottyB/skewer-mode) My modified version.
+ * [skewer-mode](https://github.com/skeeto/skewer-mode) (MELPA)
  * [js2-mode](https://github.com/mooz/js2-mode) (ELPA)
  * [auto-complete](https://github.com/auto-complete/auto-complete) (ELPA)
-
-For the moment, make sure you grab my modified version of skewer-mode the other dependencies can be installed using the package manager:
 
 ```
 (add-to-list 'load-path "/path/to/skewer-mode")
@@ -46,6 +44,6 @@ For the moment, make sure you grab my modified version of skewer-mode the other 
 (require 'ac-js2)
 ```
 
-Open up test-script.js and the browser will open hopefully welcoming you to Skewer. Jump back to Emacs to test out the auto completion. Auto-completion does work on other files but throws errors on partially entered commands.
+Open up test-script.js and a browser window will open. Jump back to Emacs to test out the auto completion.
 
 Thank you for testing out ac-js2. Feedback welcome.
