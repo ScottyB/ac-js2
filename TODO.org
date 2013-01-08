@@ -7,8 +7,10 @@
   - Add tests
   - Add to a package manager
   - Suport auto completion in the repl
+  - Add support for documentation of prototypes
 * Bugs:
   - Make sure the repl only prints results once independent of the number of clients
   - show wrong candidates when switching objects first time
-  - open too many browser windows
   - auto completion sometimes requires "." to be entered twice
+  - third function in prototype chain wont complete
+  - js2 buffers with no local names doesn't complete at all
