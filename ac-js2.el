@@ -156,8 +156,8 @@ property then find its inital value or function interface."
 (defun js2ac-add-extra-completions (completions)
   "Add extra candidates to COMPLETIONS."
   (append completions
-          (if js2ac-add-keywords js2-keywords)
           (if js2ac-add-ecma-262-externs js2-ecma-262-externs)
+          (if js2ac-add-keywords js2-keywords)
           (if js2ac-add-browser-externs js2-browser-externs)))
 
 (defun js2ac-tidy-comment (comment)

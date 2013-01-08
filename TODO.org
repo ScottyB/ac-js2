@@ -13,4 +13,3 @@
   - show wrong candidates when switching objects first time
   - auto completion sometimes requires "." to be entered twice
   - third function in prototype chain wont complete
-  - js2 buffers with no local names doesn't complete at all
