@@ -1,5 +1,5 @@
 * Features
-  - Need to handle a function call with params
+  - Need to handle a function call with params i.e. jQuery("#hello", aHtml + test).
   - Possibly support multiple files
   - Look at completing in a closure
   - Extend current property completion to handle chaining
@@ -8,6 +8,7 @@
   - Add to a package manager
   - Suport auto completion in the repl
 * Bugs:
+  - Make sure the repl only prints results once independent of the number of clients
   - show wrong candidates when switching objects first time
   - open too many browser windows
   - auto completion sometimes requires "." to be entered twice
