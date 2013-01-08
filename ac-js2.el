@@ -5,11 +5,6 @@
 ;; An attempt to get context sensitive completion in Emacs.
 ;;
 
-;; TODO:
-;; - Add support for external libraries
-;; - Show function definition in doc string
-;; - Improve Skewer interaction
-
 ;;; Code:
 
 (require 'js2-mode)
@@ -106,8 +101,8 @@ property then find its inital value or function interface."
          pos
          beg-comment
          end-comment)
-    ;; Fix up this to only check in buffer if variable or function
-    (or (catch 'done
+    ;; TODO fix up this to only check in buffer if variable or function
+    (concat (catch 'done
           (js2-visit-ast
            scope
            (lambda (node end-p)
@@ -120,8 +115,8 @@ property then find its inital value or function interface."
                          end-comment (+ beg-comment (js2-node-len comment)))
                    (if (= 1 (- (line-number-at-pos pos) (line-number-at-pos end-comment)))
                        (throw 'done (js2ac-tidy-comment comment))))))
-             t))
-          (js2ac-skewer-document-candidates name))
+             t)))
+          (js2ac-skewer-document-candidates name)
         )))
 
 (defun js2ac-ac-prefix()

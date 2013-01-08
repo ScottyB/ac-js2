@@ -8,8 +8,10 @@
   - Add to a package manager
   - Suport auto completion in the repl
   - Add support for documentation of prototypes
+  - Add finer control to the ajax requests being made to the server
 * Bugs:
   - Make sure the repl only prints results once independent of the number of clients
   - show wrong candidates when switching objects first time
   - auto completion sometimes requires "." to be entered twice
   - third function in prototype chain wont complete
+  - function interface isn't displayed with the docstring for local functions
