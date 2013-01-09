@@ -70,12 +70,12 @@ in the buffer of the name of the OBJECT."
         (end (point)))
     (if skewer-clients
         (skewer-eval name #'js2ac-skewer-result-callback
-                     :type "complete" :extras `((prototypes . ,js2ac-add-prototype-completions)))
+                     :type "complete" :extra `((prototypes . ,js2ac-add-prototype-completions)))
       (setq js2ac-skewer-candidates nil)
       (when (and js2-mode-show-parse-errors js2-mode-show-strict-warnings)
         (setq js2ac-js2-show-comments t)
         (js2-mode-hide-warnings-and-errors))
-      (message "No skewer clients connected. Run `skewer()' in the browser or execute `run-skewer'."))))
+      (message "No skewer clients connected or in a break point."))))
 
 (defun js2ac-skewer-result-callback (result)
   "Callback called once browser has evaluated the properties for an object."
