@@ -50,13 +50,15 @@ skewer.fn.complete = function(request) {
         var obj = (eval, eval)(request.eval);
         if (typeof obj === "object") {
             addValues(obj);
-            while ((obj = Object.getPrototypeOf(obj)) !== null) {
+            while (request.prototypes && (obj = Object.getPrototypeOf(obj)) !== null) {
                 addValues(obj);
             }
         } else if (typeof obj === "function"){
             addValues(obj);
             addValues(Object.getPrototypeOf(obj));
-            addValues(obj.prototype);
+            if (request.prototypes && (obj = Object.getPrototypeOf(obj.prototype)) !== null) {
+                addValues(obj);
+            }
         }
         result.value = value;
     } catch (error){
