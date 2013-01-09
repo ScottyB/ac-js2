@@ -28,8 +28,16 @@
 (defcustom js2ac-add-keywords t
   "If non-nil add `js2-keywords' to completion candidates.")
 
+(defcustom js2ac-add-prototype-completions t
+  "When non-nil traverse the prototype chain adding to completion candidates.")
+
 (defcustom js2ac-external-javscript-libraries '()
   "List of absolute paths to external Javascript libraries")
+
+;;; Internal variables
+
+(defvar js2ac-keywords '()
+  "Cached string version of js2-keywords")
 
 ;;; Skewer integration
 
@@ -56,7 +64,8 @@ in the buffer of the name of the OBJECT."
   (let ((code (buffer-substring-no-properties (point-min) (point-max)))
         (name (or object (buffer-substring-no-properties beg end)))
         (end (point)))
-    (skewer-eval name #'js2ac-skewer-result-callback :type "complete")))
+    (skewer-eval name #'js2ac-skewer-result-callback
+                 :type "complete" :extras `((prototypes . ,js2ac-add-prototype-completions)))))
 
 (defun js2ac-skewer-result-callback (result)
   "Callback called once browser has evaluated the properties for an object."
@@ -151,8 +160,8 @@ property then find its inital value or function interface."
 (defun js2ac-add-extra-completions (completions)
   "Add extra candidates to COMPLETIONS."
   (append completions
+          (if js2ac-add-keywords (or js2ac-keywords (setq js2ac-keywords (mapcar 'symbol-name js2-keywords))))
           (if js2ac-add-ecma-262-externs js2-ecma-262-externs)
-          (if js2ac-add-keywords js2-keywords)
           (if js2ac-add-browser-externs js2-browser-externs)))
 
 (defun js2ac-tidy-comment (comment)
