@@ -43,6 +43,14 @@
   "This is used to keep track of a users js2 settings for showing
 errors and warnings. Used to allow js2ac to show messages.")
 
+;; Types of completion methods available
+(defconst js2ac-method-global 1
+  "For the time being only return keys of the global object due
+  to including the externs from Js2. This is done to provide
+  configuration options for the user.")
+
+(defconst js2ac-method-eval 0)
+
 ;;; Skewer integration
 
 (defvar js2ac-skewer-candidates '()
@@ -56,11 +64,22 @@ errors and warnings. Used to allow js2ac to show messages.")
 
 (add-hook 'skewer-js-hook 'js2ac-on-skewer-load)
 
-(defun js2ac-skewer-completion-candidates (name)
+(defun js2ac-skewer-completion-candidates ()
   (mapcar (lambda (candidate) (symbol-name (car candidate))) js2ac-skewer-candidates))
 
 (defun js2ac-skewer-document-candidates (name)
   (cdr (assoc-string name js2ac-skewer-candidates)))
+
+(defmacro js2ac-call-skewer (&rest skewer-call)
+  "Macro to make sure that no requests get sent to skewer when
+there are no clients connected."
+  `(if skewer-clients
+      ,@skewer-call
+    (setq js2ac-skewer-candidates nil)
+    (when (and js2-mode-show-parse-errors js2-mode-show-strict-warnings)
+      (setq js2ac-js2-show-comments t)
+      (js2-mode-hide-warnings-and-errors))
+    (message "No skewer clients connected or in a break point.")))
 
 (defun js2ac-get-object-properties (beg object)
   "Find properties of OBJECT for completion. BEG is the position
@@ -68,14 +87,8 @@ in the buffer of the name of the OBJECT."
   (let ((code (buffer-substring-no-properties (point-min) (point-max)))
         (name (or object (buffer-substring-no-properties beg end)))
         (end (point)))
-    (if skewer-clients
-        (skewer-eval name #'js2ac-skewer-result-callback
-                     :type "complete" :extra `((prototypes . ,js2ac-add-prototype-completions)))
-      (setq js2ac-skewer-candidates nil)
-      (when (and js2-mode-show-parse-errors js2-mode-show-strict-warnings)
-        (setq js2ac-js2-show-comments t)
-        (js2-mode-hide-warnings-and-errors))
-      (message "No skewer clients connected or in a break point."))))
+    (js2ac-call-skewer (skewer-eval name #'js2ac-skewer-result-callback
+                     :type "complete" :extra `((prototypes . ,js2ac-add-prototype-completions))))))
 
 (defun js2ac-skewer-result-callback (result)
   "Callback called once browser has evaluated the properties for an object."
@@ -98,20 +111,23 @@ in the buffer of the name of the OBJECT."
       (setq node (js2-prop-get-node-left node))
       (setq name (if (js2-call-node-p node) (js2-node-string node) (js2-name-node-name node)))
       (js2ac-get-object-properties beg name)
-      (js2ac-skewer-completion-candidates name))
+      (js2ac-skewer-completion-candidates))
      ((looking-back "\\.")
       ;; TODO: Need to come up with a better way to extract object than this regex!!
       (save-excursion
         (setq beg (and (skip-chars-backward "[a-zA-Z_$][0-9a-zA-Z_$#\"())]+\\.") (point))))
       (setq name (buffer-substring-no-properties beg (1- (point))))
       (js2ac-get-object-properties beg name)
-      (js2ac-skewer-completion-candidates name))
+      (js2ac-skewer-completion-candidates))
      (t
-      (js2ac-add-extra-completions
-       (mapcar (lambda (node)
-                 (let ((name (symbol-name (first node))))
-                   (unless (string= name (thing-at-point 'symbol)) name)))
-               (js2ac-get-names-in-scope)))))))
+      (js2ac-call-skewer (skewer-eval "" #'js2ac-skewer-result-callback
+                                      :type "complete" :extra `((method . ,js2ac-method-global))))
+      (append (js2ac-add-extra-completions
+               (mapcar (lambda (node)
+                         (let ((name (symbol-name (first node))))
+                           (unless (string= name (thing-at-point 'symbol)) name)))
+                       (js2ac-get-names-in-scope)))
+              (js2ac-skewer-completion-candidates))))))
 
 (defun js2ac-ac-document (name)
   "Find documentation for NAME in local buffer. If name is a
