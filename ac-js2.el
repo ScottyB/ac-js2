@@ -192,10 +192,10 @@ property then find its inital value or function interface."
           (if js2ac-add-browser-externs js2-browser-externs)))
 
 (defun js2ac-tidy-comment (comment)
-  (let* ((string (js2-node-string comment))
-         (string (replace-regexp-in-string "[ \t\n]$" ""
-                                           (replace-regexp-in-string "^[ \t\n*/*]+" "" string))))
-    (if string (concat string "\n"))))
+  (let* ((node-string (js2-node-string comment))
+         (string (replace-regexp-in-string "[ \t]$" ""
+                                           (replace-regexp-in-string "^[ \t\n*/*]+" "" node-string))))
+    string))
 
 (defun js2ac-root-or-node ()
   (let ((node (js2-node-at-point)))
