@@ -56,8 +56,13 @@ skewer.fn.complete = function(request) {
         } else if (typeof obj === "function"){
             addValues(obj);
             addValues(Object.getPrototypeOf(obj));
-            if (request.prototypes && (obj = Object.getPrototypeOf(obj.prototype)) !== null) {
-                addValues(obj);
+            if (request.prototypes) {
+                var protoObject = Object.getPrototypeOf(obj.prototype);
+                if (protoObject !== null) {
+                    addValues(protoObject);
+                } else {
+                    addValues(obj.prototype);
+                }
             }
         }
         result.value = value;
