@@ -40,7 +40,7 @@
   "Cached string version of js2-keywords")
 
 (defvar js2ac-js2-show-comments nil
-"This is used to keep track of a users js2 settings for showing
+  "This is used to keep track of a users js2 settings for showing
 errors and warnings. Used to allow js2ac to show messages.")
 
 ;;; Skewer integration
@@ -179,7 +179,7 @@ property then find its inital value or function interface."
   (let* ((string (js2-node-string comment))
          (string (replace-regexp-in-string "[ \t\n]$" ""
                                            (replace-regexp-in-string "^[ \t\n*/*]+" "" string))))
-    string))
+    (if string (concat string "\n"))))
 
 (defun js2ac-root-or-node ()
   (let ((node (js2-node-at-point)))
