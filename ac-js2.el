@@ -74,12 +74,12 @@ errors and warnings. Used to allow js2ac to show messages.")
   "Macro to make sure that no requests get sent to skewer when
 there are no clients connected."
   `(if skewer-clients
-      ,@skewer-call
-    (setq js2ac-skewer-candidates nil)
-    (when (and js2-mode-show-parse-errors js2-mode-show-strict-warnings)
-      (setq js2ac-js2-show-comments t)
-      (js2-mode-hide-warnings-and-errors))
-    (message "No skewer clients connected or in a break point.")))
+       ,@skewer-call
+     (setq js2ac-skewer-candidates nil)
+     (when (and js2-mode-show-parse-errors js2-mode-show-strict-warnings)
+       (setq js2ac-js2-show-comments t)
+       (js2-mode-hide-warnings-and-errors))
+     (message "No skewer clients connected or in a break point.")))
 
 (defun js2ac-get-object-properties (beg object)
   "Find properties of OBJECT for completion. BEG is the position
@@ -88,7 +88,7 @@ in the buffer of the name of the OBJECT."
         (name (or object (buffer-substring-no-properties beg end)))
         (end (point)))
     (js2ac-call-skewer (skewer-eval name #'js2ac-skewer-result-callback
-                     :type "complete" :extra `((prototypes . ,js2ac-add-prototype-completions))))))
+                                    :type "complete" :extra `((prototypes . ,js2ac-add-prototype-completions))))))
 
 (defun js2ac-skewer-result-callback (result)
   "Callback called once browser has evaluated the properties for an object."
@@ -129,31 +129,47 @@ in the buffer of the name of the OBJECT."
                        (js2ac-get-names-in-scope)))
               (js2ac-skewer-completion-candidates))))))
 
-(defun js2ac-ac-document (name)
-  "Find documentation for NAME in local buffer. If name is a
-property then find its inital value or function interface."
-  (let* ((scope (js2ac-root-or-node))
-         (scope (js2-get-defining-scope scope name))
-         pos
-         beg-comment
-         end-comment)
-    ;; TODO fix up this to only check in buffer if variable or function
-    (concat (catch 'done
-          (js2-visit-ast
-           scope
-           (lambda (node end-p)
-             (unless end-p
-               (setq node-name (js2ac-determine-node-name node))
-               (when (string= node-name name)
-                 (setq pos (js2-node-abs-pos node))
-                 (dolist (comment (js2-ast-root-comments js2-mode-ast) nil)
-                   (setq beg-comment (js2-node-abs-pos comment)
-                         end-comment (+ beg-comment (js2-node-len comment)))
-                   (if (= 1 (- (line-number-at-pos pos) (line-number-at-pos end-comment)))
-                       (throw 'done (js2ac-tidy-comment comment))))))
-             t)))
-          (js2ac-skewer-document-candidates name)
-        )))
+(defun js2ac-ac-grab-names (node name)
+  "Search through scope of NODE looking for NAME."
+  (let* ((scope (if (js2-function-node-p node)
+                    (js2-function-node-body node)
+                  node)))
+    (js2-visit-ast
+     scope
+     (lambda (node end-p)
+       (unless (js2-object-node-p node)
+         (when (not end-p)
+           (cond
+            ((js2-function-node-p node)
+             (let ((name-node (js2-function-node-name node)))
+               (if name-node (js2ac-comment-for-name name-node name))nil))
+            ((js2-var-init-node-p node)
+             (let ((target-node (js2-var-init-node-target node)))
+               (if (js2-name-node-p target-node) (js2ac-comment-for-name target-node name))))
+            (t t))))))))
+
+(defun js2ac-ac-document(name)
+  "Loops over the names in the current scope and on all name nodes in parent nodes."
+  (let* ((node (js2ac-root-or-node))
+         (scope (js2-get-defining-scope node name)))
+    (concat
+     (catch 'found
+       (while node
+         (js2ac-ac-grab-names node name)
+         (setq node (js2-node-parent node))))
+     (js2ac-skewer-document-candidates name))))
+
+(defun js2ac-comment-for-name (node name)
+  "NODE is the node to check and NAME is the name of the node to find."
+  (if (string= (js2-name-node-name node) name)
+      (let ((pos (js2-node-abs-pos node))
+            beg-comment
+            end-comment)
+        (dolist (comment (js2-ast-root-comments js2-mode-ast) nil)
+          (setq beg-comment (js2-node-abs-pos comment)
+                end-comment (+ beg-comment (js2-node-len comment)))
+          (if (= 1 (- (line-number-at-pos pos) (line-number-at-pos end-comment)))
+              (throw 'found (js2ac-tidy-comment comment)))))))
 
 (defun js2ac-ac-prefix()
   (or (ac-prefix-default) (ac-prefix-c-dot)))
