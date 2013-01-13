@@ -59,6 +59,9 @@ errors and warnings. Used to allow js2ac to show messages.")
 (defvar js2ac-data-root (file-name-directory load-file-name)
   "Location of data files needed for js2ac-on-skewer-load")
 
+(defconst js2ac-scope-object "ScopeObject"
+  "Name of the Javascript object that holds completions for the current scope.")
+
 (defun js2ac-on-skewer-load ()
   (insert-file-contents (expand-file-name "skewer-addon.js" js2ac-data-root)))
 
@@ -96,6 +99,59 @@ in the buffer of the name of the OBJECT."
     (if (and (skewer-success-p result) value)
         (setq js2ac-skewer-candidates (append value nil))
       (setq js2ac-skewer-candidates nil))))
+
+
+(defun js2ac-prepare-scope (block-node scope-name)
+  "Prepare a BLOCK-NODE to be sent for evaluation for
+completions. SCOPE-NAME is the name to attach all vars and
+functions to."
+  (let (ast
+        buf
+        expr
+        (offset 0)
+        pos)
+    (with-temp-buffer
+      (js2-print-block block-node 0)
+      (delete-char -1)
+      (goto-char (point-min))
+      (delete-char 1)
+      (setq ast (js2-parse))
+      (setq ast(js2-ast-root-kids ast))
+      (dolist (node ast)
+        ;; Prepare variable statements
+        (when (and (js2-expr-stmt-node-p node)
+                   (js2-var-decl-node-p (setq expr (js2-expr-stmt-node-expr node))))
+          (setq pos (+ (js2-node-abs-pos expr) offset))
+          (goto-char pos)
+          (delete-char 3)
+          (insert "   ")
+          ;; (replace-string "var" "   " nil pos (+ pos 3))
+          (dolist (init-node (js2-var-decl-node-kids expr))
+            (goto-char (+ (js2-node-abs-pos init-node) offset))
+            (insert scope-name ".")
+            (setq offset (+ offset (length scope-name) 1))))
+        ;; Prepare function statements
+        (when (js2-function-node-p node)
+          (goto-char (+ (js2-node-abs-pos node) offset))
+          (insert scope-name "." (js2-function-name node) " = ")
+          (setq offset (+ offset (length scope-name) (length (js2-function-name node)) 4)))
+        (when (js2-var-decl-node-p node)))
+      (setq buf (buffer-substring-no-properties (point-min) (point-max)))
+      (skewer-load-buffer))
+    (print buf)))
+
+(defun js2ac-evaluate-scope ()
+  "Evaluates the enclosing scope at point and all parent nodes."
+  (let* ((scope (js2ac-root-or-node))
+         (block-nodes '()))
+    (while scope
+      (if (js2-function-node-p scope)
+          (add-to-list 'block-nodes (js2-function-node-body scope)))
+      (setq scope (js2-node-parent scope)))
+    (dolist (block-node (nreverse block-nodes))
+      (js2ac-prepare-scope block-node js2ac-scope-object))
+    (print block-nodes)))
+
 
 ;; Auto-complete settings
 
