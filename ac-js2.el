@@ -106,9 +106,9 @@ in the buffer of the name of the OBJECT."
 completions. SCOPE-NAME is the name to attach all vars and
 functions to."
   (let (ast
-        buf
         expr
         (offset 0)
+        len
         pos)
     (with-temp-buffer
       (js2-print-block block-node 0)
@@ -135,10 +135,14 @@ functions to."
           (goto-char (+ (js2-node-abs-pos node) offset))
           (insert scope-name "." (js2-function-name node) " = ")
           (setq offset (+ offset (length scope-name) (length (js2-function-name node)) 4)))
-        (when (js2-var-decl-node-p node)))
-      (setq buf (buffer-substring-no-properties (point-min) (point-max)))
-      (skewer-load-buffer))
-    (print buf)))
+        ;; Remove return statement
+        (when (js2-return-node-p node)
+          (setq pos (+ (js2-node-abs-pos node) offset))
+          (goto-char pos)
+          (setq len (js2-node-len node))
+          (delete-char len)
+          (setq offset (- offset len))))
+      (skewer-load-buffer))))
 
 (defun js2ac-evaluate-scope ()
   "Evaluates the enclosing scope at point and all parent nodes."
@@ -149,8 +153,7 @@ functions to."
           (add-to-list 'block-nodes (js2-function-node-body scope)))
       (setq scope (js2-node-parent scope)))
     (dolist (block-node (nreverse block-nodes))
-      (js2ac-prepare-scope block-node js2ac-scope-object))
-    (print block-nodes)))
+      (js2ac-prepare-scope block-node js2ac-scope-object))))
 
 
 ;; Auto-complete settings
