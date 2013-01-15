@@ -14,7 +14,10 @@
   - show wrong candidates when switching objects first time
   - auto completion sometimes requires "." to be entered twice
   - third function in prototype chain wont complete
-  - local variables and functions don't show initial values i.e. aren't evaluated
-    Causes wrong intial value to be shown if name is present in the main scope
+  - ScopeObject related:
+    - Function parameters need to be added
+    - Automatically adds ';' for partially entered values
 * Ideas
   - Add yasnippet expansion when calling functions
+  - On server error flush the skewer queue or when no clients
+  - Error reporting once there is no skewer clients
