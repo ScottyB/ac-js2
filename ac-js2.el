@@ -39,17 +39,16 @@
 (defvar js2ac-keywords '()
   "Cached string version of js2-keywords")
 
-(defvar js2ac-js2-show-comments nil
-  "This is used to keep track of a users js2 settings for showing
-errors and warnings. Used to allow js2ac to show messages.")
-
 ;; Types of completion methods available
+(defconst js2ac-method-eval 0)
 (defconst js2ac-method-global 1
   "For the time being only return keys of the global object due
   to including the externs from Js2. This is done to provide
   configuration options for the user.")
+(defconst js2ac-method-reset 2)
 
-(defconst js2ac-method-eval 0)
+(defvar js2ac-abs-scope-pos nil
+  "Used to keep track of the current scope. Needed to use a position for anonomous functions.")
 
 ;;; Skewer integration
 
@@ -73,25 +72,15 @@ errors and warnings. Used to allow js2ac to show messages.")
 (defun js2ac-skewer-document-candidates (name)
   (cdr (assoc-string name js2ac-skewer-candidates)))
 
-(defmacro js2ac-call-skewer (&rest skewer-call)
-  "Macro to make sure that no requests get sent to skewer when
-there are no clients connected."
-  `(if skewer-clients
-       ,@skewer-call
-     (setq js2ac-skewer-candidates nil)
-     (when (and js2-mode-show-parse-errors js2-mode-show-strict-warnings)
-       (setq js2ac-js2-show-comments t)
-       (js2-mode-hide-warnings-and-errors))
-     (message "No skewer clients connected or in a break point.")))
-
 (defun js2ac-get-object-properties (beg object)
   "Find properties of OBJECT for completion. BEG is the position
 in the buffer of the name of the OBJECT."
   (let ((code (buffer-substring-no-properties (point-min) (point-max)))
         (name (or object (buffer-substring-no-properties beg end)))
         (end (point)))
-    (js2ac-call-skewer (skewer-eval name #'js2ac-skewer-result-callback
-                                    :type "complete" :extra `((prototypes . ,js2ac-add-prototype-completions))))))
+    (skewer-eval name #'js2ac-skewer-result-callback
+                 :type "complete"
+                 :extra `((prototypes . ,js2ac-add-prototype-completions)))))
 
 (defun js2ac-skewer-result-callback (result)
   "Callback called once browser has evaluated the properties for an object."
@@ -106,6 +95,7 @@ in the buffer of the name of the OBJECT."
 completions. SCOPE-NAME is the name to attach all vars and
 functions to."
   (let (ast
+        buf
         expr
         (offset 0)
         len
@@ -125,7 +115,6 @@ functions to."
           (goto-char pos)
           (delete-char 3)
           (insert "   ")
-          ;; (replace-string "var" "   " nil pos (+ pos 3))
           (dolist (init-node (js2-var-decl-node-kids expr))
             (goto-char (+ (js2-node-abs-pos init-node) offset))
             (insert scope-name ".")
@@ -142,7 +131,12 @@ functions to."
           (setq len (js2-node-len node))
           (delete-char len)
           (setq offset (- offset len))))
-      (skewer-load-buffer))))
+      (setq buf (buffer-substring-no-properties (point-min)(point-max)))
+      ;; (skewer-eval "" #'js2ac-blank-callback)
+      (skewer-load-buffer)
+      )
+    (print buf)
+    ))
 
 (defun js2ac-evaluate-scope ()
   "Evaluates the enclosing scope at point and all parent nodes."
@@ -156,6 +150,17 @@ functions to."
       (js2ac-prepare-scope block-node js2ac-scope-object))))
 
 
+(defun js2ac-enclosing-function-pos ()
+  (let* ((node (js2-node-at-point)))
+    (unless (js2-ast-root-p node)
+      (setq node (js2-node-parent node))
+      (while (or (not (js2-function-node-p node)) (js2-ast-root-p node))
+        (setq node (js2-node-parent node))))
+    (js2-node-abs-pos node)))
+
+(defun js2ac-blank-callback (result)
+  (assoc 'status result))
+
 ;; Auto-complete settings
 
 (defun js2ac-ac-candidates()
@@ -163,7 +168,13 @@ functions to."
   (let ((node (js2-node-parent (js2-node-at-point (1- (point)))))
         beg
         name)
-    (if js2ac-js2-show-comments (js2-mode-display-warnings-and-errors))
+    ;; (when (not (= js2ac-abs-scope-pos (js2ac-enclosing-function-pos)))
+    ;;   (setq js2ac-abs-scope-pos (js2ac-enclosing-function-pos))
+    ;; (skewer-eval "blank" #'js2ac-blank-callback :type "complete" :extra `((method . ,js2ac-method-reset)));)
+
+    ;;     (js2ac-evaluate-scope)
+
+    ;; )
     (cond
      ((js2-prop-get-node-p node)
       (setq beg (js2-node-abs-pos node))
@@ -179,8 +190,8 @@ functions to."
       (js2ac-get-object-properties beg name)
       (js2ac-skewer-completion-candidates))
      (t
-      (js2ac-call-skewer (skewer-eval "" #'js2ac-skewer-result-callback
-                                      :type "complete" :extra `((method . ,js2ac-method-global))))
+      (skewer-eval "" #'js2ac-skewer-result-callback
+                   :type "complete" :extra `((method . ,js2ac-method-global)))
       (append (js2ac-add-extra-completions
                (mapcar (lambda (node)
                          (let ((name (symbol-name (first node))))
