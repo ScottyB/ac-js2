@@ -286,23 +286,6 @@ functions to."
       (setq scope (js2-scope-parent-scope scope)))
     result))
 
-;; Borrowed from js2r-functions.el
-(defun js2r--is-var-function-expression (node)
-  (and (js2-function-node-p node)
-       (js2-var-init-node-p (js2-node-parent node))))
-
-(defun js2ac-determine-node-name (node)
-  "Determines the name for the node "
-  (cond
-   ((js2-function-node-p node) (js2-function-name node))
-
-   ((js2r--is-var-function-expression node) (js2-name-node-name
-                                             (js2-var-init-node-target (js2-node-parent node))))
-   ((js2-var-init-node-p node) (js2-name-node-name
-                                (js2-var-init-node-target node)))
-   (t
-    nil)))
-
 (provide 'ac-js2)
 
 ;;; ac-js2.el ends here
