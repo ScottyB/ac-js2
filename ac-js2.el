@@ -289,13 +289,103 @@ functions to."
         node
       (js2-node-get-enclosing-scope node))))
 
+
+
 (defun js2ac-get-names-in-scope ()
   (let* ((scope (js2ac-root-or-node))
          result)
     (while scope
       (setq result (append result (js2-scope-symbol-table scope)))
       (setq scope (js2-scope-parent-scope scope)))
+    (setq js2-test-scope result)
     result))
+
+;;; TEST
+(defun js2ac-names-in-scope (name)
+  (let* ((scope (js2ac-root-or-node))
+         (node (js2-get-defining-scope scope name))
+         (var-init-node (js2-node-parent (js2-symbol-ast-node
+                                          (js2-scope-get-symbol node name))))
+         (initializer (js2-var-init-node-initializer
+                       var-init-node)))
+    (unless initializer
+      (error "Var isn't intialized when defined"))
+    (if (js2-object-node-p initializer)
+        (let ((elems (js2-object-node-elems initializer)))
+          (mapcar 'js2ac-format-js2-object-prop elems)))))
+
+(defun js2ac-format-js2-object-prop (obj-prop)
+  (unless (js2-object-prop-node-p obj-prop)
+    (error "Node is not an object property node"))
+  (let* ((left (js2-object-prop-node-left obj-prop))
+         (right (js2-object-prop-node-right obj-prop))
+         (right-string (js2-node-string right)))
+    `(,(js2-node-string left) .
+      ,(if (js2-function-node-p right)
+           (js2ac-format-function right-string)
+         right-string))))
+
+(defun js2ac-format-function (str)
+  (substring str 0 (1+ (string-match ")" str))))
+
+;;; Navigation commands for js2-node
+
+(defun js2ac-get-init-node (name-node)
+  "Find the initial declaration of NAME-NODE. "
+  (let* ((parent (js2-node-parent name-node))
+         (name (if (and (js2-name-node-p name-node)
+                        (not (js2-prop-get-node-p parent))
+                        (not (js2-object-prop-node-p parent)))
+                   (js2-name-node-name name-node)
+                 (error "Node is not a supported jump node")))
+         (scope (js2-node-get-enclosing-scope node))
+         (scope (js2-get-defining-scope scope name))
+         (end-pos (js2-node-abs-end name-node)))
+    (save-excursion
+      (cond
+       ((and (js2-call-node-p parent)
+             (goto-char end-pos)
+             (looking-at "[\n\t ]*("))
+        (js2ac-get-function-node name scope))
+       ;; TODO Add support for jumping to object property
+       ;; ((js2-propt-get-node-p parent)
+       ;;  ())
+       (t
+        (js2-symbol-ast-node
+         (js2-scope-get-symbol scope name)))))))
+
+(defun js2ac-get-function-node (name scope)
+  "Find NAME of function in SCOPE. Returns nil if node could not
+be found."
+  (catch 'function-found
+    (js2-visit-ast
+     scope
+     (lambda (node end-p)
+       (when (and (not end-p)
+                  (string= name (js2ac-get-function-name node)))
+         (throw 'function-found node))
+       t))
+    nil))
+
+(defun js2ac-jump-to-var ()
+  (interactive)
+  (let* ((node (js2-node-at-point))
+         (node-init (js2ac-get-init-node node)))
+    (unless node-init
+      (error "No jump location found"))
+    (push-mark)
+    (goto-char (js2-node-abs-pos node-init))))
+
+(defun js2ac-get-function-name (fn-node)
+  "Returns the name of the function or the variable that holds
+the function if present."
+  (let ((parent (js2-node-parent fn-node)))
+    (if (js2-function-node-p fn-node)
+        (or (js2-function-name fn-node)
+            (if (js2-var-init-node-p parent)
+                (js2-name-node-name (js2-var-init-node-target parent)))))))
+
+(define-key js2-mode-map (kbd "M-.") 'js2ac-jump-to-var)
 
 (provide 'ac-js2)
 
