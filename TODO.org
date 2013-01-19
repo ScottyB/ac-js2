@@ -21,3 +21,25 @@
   - Add yasnippet expansion when calling functions
   - On server error flush the skewer queue or when no clients
   - Error reporting once there is no skewer clients
+* Notes
+  - Methods for adding properties to an object:
+
+    var obj = { hello : 5, "he" : "jame"};
+
+    obj["pizza"] = 3;
+
+    obj.tmp = "hello scott";
+
+    obj.tuple = (function(able, cable) {return 15;})();
+
+    obj["fn"] = function() { var a = "lots of code";};
+
+
+
+  - Format:
+    - Call nodes
+    - Function nodes
+
+
+  - Structure:
+    - cl-struct-js2-assign-node
