@@ -4,8 +4,6 @@
  * @version 1.0
  */
 
-var ScopeObject = {};
-
 /**
  * Handles a completion request from Emacs.
  * @param request The request object sent by Emacs
@@ -24,23 +22,13 @@ skewer.fn.complete = function(request) {
          */
         METHOD = {
             EVAL : 0,
-            GLOBAL : 1,
-            RESET : 2
-        },
-
-        removeProperties = function(object) {
-            for(var property in object) {
-                if (object.hasOwnProperty(property)) {
-                    delete object[property];
-                }
-            }
+            GLOBAL : 1
         },
 
         globalCompletion = function() {
             var global = Function('return this')(),
                 keys = Object.keys(global);
             buildCandidates(global, keys);
-            buildCandidates(ScopeObject);
         },
 
         evalCompletion = function(evalObject) {
@@ -110,21 +98,8 @@ skewer.fn.complete = function(request) {
         case METHOD.GLOBAL:
             globalCompletion();
             break;
-        case METHOD.RESET:
-            removeProperties(ScopeObject);
-            break;
         default:
-            var keys = Object.getOwnPropertyNames(ScopeObject), found;
-            for (var i = 0; i < keys.length; i++) {
-                if (keys[i] === request.eval) {
-                    evalCompletion(ScopeObject[request.eval]);
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                evalCompletion(request.eval);
-            }
+            evalCompletion(request.eval);
         }
         result.value = candidates;
     } catch (error){

@@ -45,7 +45,6 @@
   "For the time being only return keys of the global object due
   to including the externs from Js2. This is done to provide
   configuration options for the user.")
-(defconst js2ac-method-reset 2)
 
 (defvar js2ac-abs-scope-pos nil
   "Used to keep track of the current scope. Needed to use a position for anonomous functions.")
@@ -89,75 +88,6 @@ in the buffer of the name of the OBJECT."
         (setq js2ac-skewer-candidates (append value nil))
       (setq js2ac-skewer-candidates nil))))
 
-
-(defun js2ac-prepare-scope (block-node scope-name)
-  "Prepare a BLOCK-NODE to be sent for evaluation for
-completions. SCOPE-NAME is the name to attach all vars and
-functions to."
-  (let (ast
-        buf
-        expr
-        (offset 0)
-        len
-        pos)
-    (with-temp-buffer
-      (js2-print-block block-node 0)
-      (delete-char -1)
-      (goto-char (point-min))
-      (delete-char 1)
-      (setq ast (js2-parse))
-      (setq ast(js2-ast-root-kids ast))
-      (dolist (node ast)
-        ;; Prepare variable statements
-        (when (and (js2-expr-stmt-node-p node)
-                   (js2-var-decl-node-p (setq expr (js2-expr-stmt-node-expr node))))
-          (setq pos (+ (js2-node-abs-pos expr) offset))
-          (goto-char pos)
-          (delete-char 3)
-          (insert "   ")
-          (dolist (init-node (js2-var-decl-node-kids expr))
-            (goto-char (+ (js2-node-abs-pos init-node) offset))
-            (insert scope-name ".")
-            (setq offset (+ offset (length scope-name) 1))))
-        ;; Prepare function statements
-        (when (js2-function-node-p node)
-          (goto-char (+ (js2-node-abs-pos node) offset))
-          (insert scope-name "." (js2-function-name node) " = ")
-          (setq offset (+ offset (length scope-name) (length (js2-function-name node)) 4)))
-        ;; Remove return statement
-        (when (js2-return-node-p node)
-          (setq pos (+ (js2-node-abs-pos node) offset))
-          (goto-char pos)
-          (setq len (js2-node-len node))
-          (delete-char len)
-          (setq offset (- offset len))))
-      (setq buf (buffer-substring-no-properties (point-min)(point-max)))
-      ;; (skewer-eval "" #'js2ac-blank-callback)
-      (skewer-load-buffer)
-      )
-    (print buf)
-    ))
-
-(defun js2ac-evaluate-scope ()
-  "Evaluates the enclosing scope at point and all parent nodes."
-  (let* ((scope (js2ac-root-or-node))
-         (block-nodes '()))
-    (while scope
-      (if (js2-function-node-p scope)
-          (add-to-list 'block-nodes (js2-function-node-body scope)))
-      (setq scope (js2-node-parent scope)))
-    (dolist (block-node (nreverse block-nodes))
-      (js2ac-prepare-scope block-node js2ac-scope-object))))
-
-
-(defun js2ac-enclosing-function-pos ()
-  (let* ((node (js2-node-at-point)))
-    (unless (js2-ast-root-p node)
-      (setq node (js2-node-parent node))
-      (while (or (not (js2-function-node-p node)) (js2-ast-root-p node))
-        (setq node (js2-node-parent node))))
-    (js2-node-abs-pos node)))
-
 (defun js2ac-blank-callback (result)
   (assoc 'status result))
 
@@ -168,13 +98,6 @@ functions to."
   (let ((node (js2-node-parent (js2-node-at-point (1- (point)))))
         beg
         name)
-    ;; (when (not (= js2ac-abs-scope-pos (js2ac-enclosing-function-pos)))
-    ;;   (setq js2ac-abs-scope-pos (js2ac-enclosing-function-pos))
-    ;; (skewer-eval "blank" #'js2ac-blank-callback :type "complete" :extra `((method . ,js2ac-method-reset)));)
-
-    ;;     (js2ac-evaluate-scope)
-
-    ;; )
     (cond
      ((js2-prop-get-node-p node)
       (setq beg (js2-node-abs-pos node))
