@@ -46,9 +46,6 @@
   to including the externs from Js2. This is done to provide
   configuration options for the user.")
 
-(defvar js2ac-abs-scope-pos nil
-  "Used to keep track of the current scope. Needed to use a position for anonomous functions.")
-
 ;;; Skewer integration
 
 (defvar js2ac-skewer-candidates '()
@@ -56,9 +53,6 @@
 
 (defvar js2ac-data-root (file-name-directory load-file-name)
   "Location of data files needed for js2ac-on-skewer-load")
-
-(defconst js2ac-scope-object "ScopeObject"
-  "Name of the Javascript object that holds completions for the current scope.")
 
 (defun js2ac-on-skewer-load ()
   (insert-file-contents (expand-file-name "skewer-addon.js" js2ac-data-root)))
