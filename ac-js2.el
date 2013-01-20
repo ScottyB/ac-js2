@@ -39,6 +39,8 @@
 (defvar js2ac-keywords '()
   "Cached string version of js2-keywords")
 
+(defvar js2ac-candidates '())
+
 ;; Types of completion methods available
 (defconst js2ac-method-eval 0)
 (defconst js2ac-method-global 1
@@ -71,9 +73,10 @@ in the buffer of the name of the OBJECT."
   (let ((code (buffer-substring-no-properties (point-min) (point-max)))
         (name (or object (buffer-substring-no-properties beg end)))
         (end (point)))
-    (skewer-eval name #'js2ac-skewer-result-callback
-                 :type "complete"
-                 :extra `((prototypes . ,js2ac-add-prototype-completions)))))
+    ;; (skewer-eval name #'js2ac-skewer-result-callback
+    ;;              :type "complete"
+    ;;              :extra `((prototypes . ,js2ac-add-prototype-completions)))
+    ))
 
 (defun js2ac-skewer-result-callback (result)
   "Callback called once browser has evaluated the properties for an object."
@@ -81,9 +84,6 @@ in the buffer of the name of the OBJECT."
     (if (and (skewer-success-p result) value)
         (setq js2ac-skewer-candidates (append value nil))
       (setq js2ac-skewer-candidates nil))))
-
-(defun js2ac-blank-callback (result)
-  (assoc 'status result))
 
 ;; Auto-complete settings
 
@@ -107,14 +107,14 @@ in the buffer of the name of the OBJECT."
       (js2ac-get-object-properties beg name)
       (js2ac-skewer-completion-candidates))
      (t
-      (skewer-eval "" #'js2ac-skewer-result-callback
-                   :type "complete" :extra `((method . ,js2ac-method-global)))
+      ;; (skewer-eval "" #'js2ac-skewer-result-callback
+      ;;              :type "complete" :extra `((method . ,js2ac-method-global)))
       (append (js2ac-add-extra-completions
-               (mapcar (lambda (node)
-                         (let ((name (symbol-name (first node))))
-                           (unless (string= name (thing-at-point 'symbol)) name)))
-                       (js2ac-get-names-in-scope)))
-              (js2ac-skewer-completion-candidates))))))
+               (mapcar (lambda (x)
+                         (first x))
+                       (js2ac-get-names-in-scope))
+               ;;(js2ac-skewer-completion-candidates)
+               ))))))
 
 (defun js2ac-ac-grab-names (node name)
   "Search through scope of NODE looking for NAME."
@@ -207,29 +207,61 @@ in the buffer of the name of the OBJECT."
       (js2-node-get-enclosing-scope node))))
 
 
-
 (defun js2ac-get-names-in-scope ()
+  "Fetches all symbols in scope and formats them for completion."
   (let* ((scope (js2ac-root-or-node))
          result)
     (while scope
       (setq result (append result (js2-scope-symbol-table scope)))
       (setq scope (js2-scope-parent-scope scope)))
-    (setq js2-test-scope result)
-    result))
+    (setq js2ac-candidates
+          (mapcar (lambda (x)
+                    (let ((name (symbol-name (car x))))
+                      (js2ac-format-node name (js2ac-name-declaration name))))
+                  result))))
 
-;;; TEST
-(defun js2ac-names-in-scope (name)
+(defun js2ac-name-declaration (name)
+  "Returns the declaration node for node named NAME."
   (let* ((scope (js2ac-root-or-node))
-         (node (js2-get-defining-scope scope name))
-         (var-init-node (js2-node-parent (js2-symbol-ast-node
-                                          (js2-scope-get-symbol node name))))
-         (initializer (js2-var-init-node-initializer
-                       var-init-node)))
-    (unless initializer
-      (error "Var isn't intialized when defined"))
-    (if (js2-object-node-p initializer)
-        (let ((elems (js2-object-node-elems initializer)))
-          (mapcar 'js2ac-format-js2-object-prop elems)))))
+         (node-def (js2-get-defining-scope scope name))
+         (symbol (js2-symbol-ast-node
+                  (js2-scope-get-symbol node-def name)))
+         (init-node (and symbol (js2-node-parent symbol)))
+         (initializer (cond
+                       ((js2-function-node-p init-node)
+                        init-node)
+                       ((not symbol)
+                        ;; TODO Fix multiple functions in scope
+                        (js2ac-get-function-node name node-def))
+                       (t
+                        (js2-var-init-node-initializer
+                         init-node)))))
+    initializer))
+
+;;; Completion candidate formating
+
+(defun js2ac-format-node (name node)
+  "Formats NODE for completions. Returned format is an alist
+where the first element is the NAME of the node (shown in
+completion candidate list) and the last element is the text to
+show as documentation."
+  (cond
+   ((js2-object-node-p node)
+    (let ((elems (js2-object-node-elems node)))
+      (if elems
+          `(,name . (,(mapcar 'js2ac-format-js2-object-prop elems)))
+        `(,name))))
+   ((js2-function-node-p node)
+    (if (find name (js2-function-node-params node)
+              :test 'js2ac-param-name-p)
+        `(,name . "Function parameter")
+      `(,name . ,(js2ac-format-function (js2-node-string node)))))
+   (t
+    `(,name . ,(js2-node-string node)))))
+
+(defun js2ac-param-name-p (name param)
+  "Used to check if NAME matches PARAM name."
+  (string= name (js2-name-node-name param)))
 
 (defun js2ac-format-js2-object-prop (obj-prop)
   (unless (js2-object-prop-node-p obj-prop)
