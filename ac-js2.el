@@ -116,47 +116,10 @@ in the buffer of the name of the OBJECT."
                ;;(js2ac-skewer-completion-candidates)
                ))))))
 
-(defun js2ac-ac-grab-names (node name)
-  "Search through scope of NODE looking for NAME."
-  (let* ((scope (if (js2-function-node-p node)
-                    (js2-function-node-body node)
-                  node)))
-    (js2-visit-ast
-     scope
-     (lambda (node end-p)
-       (unless (js2-object-node-p node)
-         (when (not end-p)
-           (cond
-            ((js2-function-node-p node)
-             (let ((name-node (js2-function-node-name node)))
-               (if name-node (js2ac-comment-for-name name-node name))nil))
-            ((js2-var-init-node-p node)
-             (let ((target-node (js2-var-init-node-target node)))
-               (if (js2-name-node-p target-node) (js2ac-comment-for-name target-node name))))
-            (t t))))))))
-
 (defun js2ac-ac-document(name)
   "Loops over the names in the current scope and on all name nodes in parent nodes."
-  (let* ((node (js2ac-root-or-node))
-         (scope (js2-get-defining-scope node name)))
-    (concat
-     (catch 'found
-       (while node
-         (js2ac-ac-grab-names node name)
-         (setq node (js2-node-parent node))))
-     (js2ac-skewer-document-candidates name))))
-
-(defun js2ac-comment-for-name (node name)
-  "NODE is the node to check and NAME is the name of the node to find."
-  (if (string= (js2-name-node-name node) name)
-      (let ((pos (js2-node-abs-pos node))
-            beg-comment
-            end-comment)
-        (dolist (comment (js2-ast-root-comments js2-mode-ast) nil)
-          (setq beg-comment (js2-node-abs-pos comment)
-                end-comment (+ beg-comment (js2-node-len comment)))
-          (if (= 1 (- (line-number-at-pos pos) (line-number-at-pos end-comment)))
-              (throw 'found (js2ac-tidy-comment comment)))))))
+  (let* ((doc (cdr (assoc name js2ac-candidates))))
+    (if (listp doc) (first doc) doc)))
 
 (defun js2ac-ac-prefix()
   (or (ac-prefix-default) (ac-prefix-c-dot)))
@@ -195,7 +158,9 @@ in the buffer of the name of the OBJECT."
           (if js2ac-add-browser-externs js2-browser-externs)))
 
 (defun js2ac-tidy-comment (comment)
-  (let* ((node-string (js2-node-string comment))
+  (let* ((node-string (if (js2-comment-node-p comment)
+                          (js2-node-string comment)
+                        comment))
          (string (replace-regexp-in-string "[ \t]$" ""
                                            (replace-regexp-in-string "^[ \t\n*/*]+" "" node-string))))
     string))
@@ -212,13 +177,40 @@ in the buffer of the name of the OBJECT."
   (let* ((scope (js2ac-root-or-node))
          result)
     (while scope
-      (setq result (append result (js2-scope-symbol-table scope)))
+      (setq result (append result
+                           (loop for item in (js2-scope-symbol-table scope)
+                                 if (not (assoc (car item) result))
+                                 collect item)))
       (setq scope (js2-scope-parent-scope scope)))
     (setq js2ac-candidates
           (mapcar (lambda (x)
-                    (let ((name (symbol-name (car x))))
-                      (js2ac-format-node name (js2ac-name-declaration name))))
+                    (let* ((name (symbol-name (car x)))
+                           (node (js2ac-name-declaration name))
+                           (parent (js2-node-parent node))
+                           (init (cond
+                                  ((js2-function-node-p parent)
+                                   parent)
+                                  ((js2-function-node-p node)
+                                   node)
+                                  (t
+                                   (js2-var-init-node-initializer parent)))))
+                      (js2ac-build-document-string name init)))
                   result))))
+
+(defun js2ac-build-document-string (name node)
+  (let* ((node-above (js2-node-at-point
+                      (save-excursion
+                        (goto-char (js2-node-abs-pos node))
+                        (forward-line -1)
+                        (point))))
+         (comment (if (js2-comment-node-p node-above)
+                      (js2-node-string node-above)))
+         (info (js2ac-format-node name init))
+         (interface (first (last info))))
+    (if comment
+        (setcdr info (concat (js2ac-tidy-comment comment) "\n" interface)))
+    info))
+
 
 (defun js2ac-name-declaration (name)
   "Returns the declaration node for node named NAME."
@@ -226,42 +218,42 @@ in the buffer of the name of the OBJECT."
          (node-def (js2-get-defining-scope scope name))
          (symbol (js2-symbol-ast-node
                   (js2-scope-get-symbol node-def name)))
-         (init-node (and symbol (js2-node-parent symbol)))
-         (initializer (cond
-                       ((js2-function-node-p init-node)
-                        init-node)
-                       ((not symbol)
-                        ;; TODO Fix multiple functions in scope
-                        (js2ac-get-function-node name node-def))
-                       (t
-                        (js2-var-init-node-initializer
-                         init-node)))))
-    initializer))
+         (init-node (and symbol)))
+    (if (not symbol)
+        (js2ac-get-function-node name node-def)
+      init-node)))
 
 ;;; Completion candidate formating
 
 (defun js2ac-format-node (name node)
-  "Formats NODE for completions. Returned format is an alist
+  "Formats NODE for completions. Returned format is a list
 where the first element is the NAME of the node (shown in
-completion candidate list) and the last element is the text to
-show as documentation."
-  (cond
-   ((js2-object-node-p node)
-    (let ((elems (js2-object-node-elems node)))
-      (if elems
-          `(,name . (,(mapcar 'js2ac-format-js2-object-prop elems)))
-        `(,name))))
-   ((js2-function-node-p node)
-    (if (find name (js2-function-node-params node)
-              :test 'js2ac-param-name-p)
-        `(,name . "Function parameter")
-      `(,name . ,(js2ac-format-function (js2-node-string node)))))
-   (t
-    `(,name . ,(js2-node-string node)))))
+completion candidate list), the second element is the text to
+show as documentation and the last element the absolute position of NODE."
+  (let ((doc (cond
+              ((js2-object-node-p node)
+               (js2ac-format-object-node node))
+              ((js2-function-node-p node)
+               (if (find name (js2-function-node-params node)
+                         :test 'js2ac-param-name-p)
+                   "Function parameter"
+                 (js2ac-format-function node)))
+              (t
+               (js2-node-string node)))))
+    `(,name ,doc)))
 
 (defun js2ac-param-name-p (name param)
   "Used to check if NAME matches PARAM name."
   (string= name (js2-name-node-name param)))
+
+(defun js2ac-format-object-node (obj-node)
+  (let (elems)
+    (unless (js2-object-node-p obj-node)
+      (error "Node is not an object node"))
+    (setq elems (js2-object-node-elems obj-node))
+    (if (not elems)
+        "{}"
+      (mapconcat '(lambda (x) (js2ac-format-js2-object-prop x)) elems "\n"))))
 
 (defun js2ac-format-js2-object-prop (obj-prop)
   (unless (js2-object-prop-node-p obj-prop)
@@ -269,39 +261,22 @@ show as documentation."
   (let* ((left (js2-object-prop-node-left obj-prop))
          (right (js2-object-prop-node-right obj-prop))
          (right-string (js2-node-string right)))
-    `(,(js2-node-string left) .
-      ,(if (js2-function-node-p right)
-           (js2ac-format-function right-string)
-         right-string))))
+    (concat (js2-node-string left) " : "
+            (cond
+             ((js2-function-node-p right)
+              (js2ac-format-function right))
+             ((js2-object-node-p right)
+              "[Object]")
+             (t
+              right-string)))))
 
-(defun js2ac-format-function (str)
-  (substring str 0 (1+ (string-match ")" str))))
+(defun js2ac-format-function (fun-node)
+  (unless (js2-function-node-p fun-node)
+    (error "Node is not a function node"))
+  (let ((str (js2-node-string fun-node)))
+    (substring str 0 (1+ (string-match ")" str)))))
 
 ;;; Navigation commands for js2-node
-
-(defun js2ac-get-init-node (name-node)
-  "Find the initial declaration of NAME-NODE. "
-  (let* ((parent (js2-node-parent name-node))
-         (name (if (and (js2-name-node-p name-node)
-                        (not (js2-prop-get-node-p parent))
-                        (not (js2-object-prop-node-p parent)))
-                   (js2-name-node-name name-node)
-                 (error "Node is not a supported jump node")))
-         (scope (js2-node-get-enclosing-scope node))
-         (scope (js2-get-defining-scope scope name))
-         (end-pos (js2-node-abs-end name-node)))
-    (save-excursion
-      (cond
-       ((and (js2-call-node-p parent)
-             (goto-char end-pos)
-             (looking-at "[\n\t ]*("))
-        (js2ac-get-function-node name scope))
-       ;; TODO Add support for jumping to object property
-       ;; ((js2-propt-get-node-p parent)
-       ;;  ())
-       (t
-        (js2-symbol-ast-node
-         (js2-scope-get-symbol scope name)))))))
 
 (defun js2ac-get-function-node (name scope)
   "Find NAME of function in SCOPE. Returns nil if node could not
@@ -319,7 +294,13 @@ be found."
 (defun js2ac-jump-to-var ()
   (interactive)
   (let* ((node (js2-node-at-point))
-         (node-init (js2ac-get-init-node node)))
+         (parent (js2-node-parent node))
+         (name (if (and (js2-name-node-p node)
+                        (not (js2-prop-get-node-p parent))
+                        (not (js2-object-prop-node-p parent)))
+                   (js2-name-node-name node)
+                 (error "Node is not a supported jump node")))
+         (node-init (js2ac-name-declaration name)))
     (unless node-init
       (error "No jump location found"))
     (push-mark)
