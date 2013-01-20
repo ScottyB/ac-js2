@@ -211,17 +211,15 @@ in the buffer of the name of the OBJECT."
         (setcdr info (concat (js2ac-tidy-comment comment) "\n" interface)))
     info))
 
-
 (defun js2ac-name-declaration (name)
   "Returns the declaration node for node named NAME."
-  (let* ((scope (js2ac-root-or-node))
-         (node-def (js2-get-defining-scope scope name))
-         (symbol (js2-symbol-ast-node
-                  (js2-scope-get-symbol node-def name)))
-         (init-node (and symbol)))
+  (let* ((node (js2ac-root-or-node))
+         (scope-def (js2-get-defining-scope node name))
+         (scope (if scope-def (js2-scope-get-symbol scope-def name) nil))
+         (symbol (if scope (js2-symbol-ast-node scope) nil)))
     (if (not symbol)
-        (js2ac-get-function-node name node-def)
-      init-node)))
+        (js2ac-get-function-node name scope-def)
+      symbol)))
 
 ;;; Completion candidate formating
 
