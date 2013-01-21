@@ -11,6 +11,7 @@
 (require 'auto-complete)
 (require 'skewer-mode)
 (require 'json)
+(require 'cl)
 
 (defgroup ac-js2 nil
   "Auto-completion for js2-mode."
@@ -48,6 +49,8 @@
   to including the externs from Js2. This is done to provide
   configuration options for the user.")
 
+(defvar skewer-hide-comments nil)
+
 ;;; Skewer integration
 
 (defvar js2ac-skewer-candidates '()
@@ -73,10 +76,25 @@ in the buffer of the name of the OBJECT."
   (let ((code (buffer-substring-no-properties (point-min) (point-max)))
         (name (or object (buffer-substring-no-properties beg end)))
         (end (point)))
-    ;; (skewer-eval name #'js2ac-skewer-result-callback
-    ;;              :type "complete"
-    ;;              :extra `((prototypes . ,js2ac-add-prototype-completions)))
-    ))
+    (js2ac-skewer-eval-wrapper name `((prototypes . ,js2ac-add-prototype-completions)))))
+
+(defun js2ac-skewer-eval-wrapper (name extras)
+  "Ping the client to see if there are any browsers connected
+before issuing a request."
+  (if (skewer-ping)
+      (progn
+        (skewer-eval name #'js2ac-skewer-result-callback
+                     :type "complete"
+                     :extra extras)
+        (when skewer-hide-comments
+          (js2-mode-toggle-warnings-and-errors)
+          (setq skewer-hide-comments nil)))
+    (when (and js2-mode-show-parse-errors js2-mode-show-strict-warnings)
+      (setq skewer-hide-comments t)
+      (js2-mode-toggle-warnings-and-errors))
+    (setq js2ac-skewer-candidates nil
+          skewer-queue nil)
+    (message "No skewer connected")))
 
 (defun js2ac-skewer-result-callback (result)
   "Callback called once browser has evaluated the properties for an object."
@@ -107,14 +125,10 @@ in the buffer of the name of the OBJECT."
       (js2ac-get-object-properties beg name)
       (js2ac-skewer-completion-candidates))
      (t
-      ;; (skewer-eval "" #'js2ac-skewer-result-callback
-      ;;              :type "complete" :extra `((method . ,js2ac-method-global)))
-      (append (js2ac-add-extra-completions
-               (mapcar (lambda (x)
-                         (first x))
-                       (js2ac-get-names-in-scope))
-               ;;(js2ac-skewer-completion-candidates)
-               ))))))
+      (js2ac-skewer-eval-wrapper "" `((method . ,js2ac-method-global)))
+      (append (js2ac-skewer-completion-candidates)
+              (js2ac-add-extra-completions
+               (mapcar 'first (js2ac-get-names-in-scope))))))))
 
 (defun js2ac-ac-document(name)
   "Loops over the names in the current scope and on all name nodes in parent nodes."
