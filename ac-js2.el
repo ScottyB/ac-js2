@@ -50,6 +50,7 @@
   configuration options for the user.")
 
 (defvar skewer-hide-comments nil)
+(defvar js2ac-evaluate-calls nil)
 
 ;;; Skewer integration
 
@@ -83,9 +84,11 @@ in the buffer of the name of the OBJECT."
 before issuing a request."
   (if (skewer-ping)
       (progn
-        (skewer-eval name #'js2ac-skewer-result-callback
-                     :type "complete"
-                     :extra extras)
+        (if (or js2ac-evaluate-calls
+                (not (js2ac-has-funtion-calls name)))
+            (skewer-eval name #'js2ac-skewer-result-callback
+                         :type "complete"
+                         :extra extras))
         (when skewer-hide-comments
           (js2-mode-toggle-warnings-and-errors)
           (setq skewer-hide-comments nil)))
@@ -163,6 +166,21 @@ before issuing a request."
     (requires . -1)))
 
 ;;; Helper functions
+
+(defun js2ac-has-funtion-calls-p (string)
+  "Checks if STRING contains a Js2-call-node."
+  (let (found)
+    (with-temp-buffer
+      (insert string)
+      (let* ((ast (js2-parse)))
+        (setq found (catch 'call-node
+                      (js2-visit-ast-root
+                       ast
+                       (lambda (node end-p)
+                         (unless end-p
+                           (if (js2-call-node-p node)
+                               (throw 'call-node t)
+                             t))))))))))
 
 (defun js2ac-add-extra-completions (completions)
   "Add extra candidates to COMPLETIONS."
