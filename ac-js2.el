@@ -167,7 +167,7 @@ before issuing a request."
 
 ;;; Helper functions
 
-(defun js2ac-has-funtion-calls-p (string)
+(defun js2ac-has-funtion-calls (string)
   "Checks if STRING contains a Js2-call-node."
   (let (found)
     (with-temp-buffer
