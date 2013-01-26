@@ -33,7 +33,12 @@
   "When non-nil traverse the prototype chain adding to completion candidates.")
 
 (defcustom js2ac-external-javscript-libraries '()
-  "List of absolute paths to external Javascript libraries")
+  "List of absolute paths to external Javascript libraries. ")
+
+(defcustom js2ac-evaluate-calls nil
+  "Warning!!! When true function calls will be evaluated in the
+  browser. This may cause undesired side effects however it will
+  provide better completions.")
 
 ;;; Internal variables
 
@@ -50,7 +55,6 @@
   configuration options for the user.")
 
 (defvar skewer-hide-comments nil)
-(defvar js2ac-evaluate-calls nil)
 
 ;;; Skewer integration
 
@@ -88,7 +92,8 @@ before issuing a request."
                 (not (js2ac-has-funtion-calls name)))
             (skewer-eval name #'js2ac-skewer-result-callback
                          :type "complete"
-                         :extra extras))
+                         :extra extras)
+          (setq js2ac-skewer-candidates nil))
         (when skewer-hide-comments
           (js2-mode-toggle-warnings-and-errors)
           (setq skewer-hide-comments nil)))
@@ -113,6 +118,7 @@ before issuing a request."
   (let ((node (js2-node-parent (js2-node-at-point (1- (point)))))
         beg
         name)
+    (setq js2ac-candidates nil)
     (cond
      ((js2-prop-get-node-p node)
       (setq beg (js2-node-abs-pos node))
@@ -126,7 +132,16 @@ before issuing a request."
         (setq beg (and (skip-chars-backward "[a-zA-Z_$][0-9a-zA-Z_$#\"())]+\\.") (point))))
       (setq name (buffer-substring-no-properties beg (1- (point))))
       (js2ac-get-object-properties beg name)
-      (js2ac-skewer-completion-candidates))
+      (setq node (js2ac-initialized-node name))
+      (if (js2-object-node-p node)
+          (setq js2ac-candidates
+                (mapcar (lambda (elem)
+                          (js2ac-format-node (js2-node-string (js2-object-prop-node-left elem))
+                                             elem))
+                        (js2-object-node-elems node))))
+      (mapcar 'first js2ac-candidates)
+      ;; (js2ac-skewer-completion-candidates)
+      )
      (t
       (js2ac-skewer-eval-wrapper "" `((method . ,js2ac-method-global)))
       (append (js2ac-skewer-completion-candidates)
@@ -142,20 +157,24 @@ before issuing a request."
   (or (ac-prefix-default) (ac-prefix-c-dot)))
 
 (defun js2ac-mode-sources ()
+  "Starts skewer if not already running and loads external
+libraries if required."
   (when (not skewer-clients)
     (run-skewer)
-    (mapcar (lambda (library)
-              (with-temp-buffer
-                (insert-file-contents library)
-                (skewer-load-buffer))) js2ac-external-javscript-libraries))
-  (skewer-load-buffer)
+    (if js2ac-evaluate-calls
+        (mapcar (lambda (library)
+                  (with-temp-buffer
+                    (insert-file-contents library)
+                    (skewer-load-buffer))) js2ac-external-javscript-libraries)))
+  (if js2ac-evaluate-calls (skewer-load-buffer))
   (setq ac-sources '(ac-source-js2)))
 
 (add-hook 'js2-mode-hook 'js2ac-mode-sources)
 
 (defun js2ac-skewer-load-buffer ()
-  (if (string= major-mode "js2-mode")
-      (skewer-load-buffer)))
+  (and (string= major-mode "js2-mode")
+       js2ac-evaluate-calls
+       (skewer-load-buffer)))
 
 (add-hook 'before-save-hook 'js2ac-skewer-load-buffer)
 
@@ -217,17 +236,23 @@ before issuing a request."
     (setq js2ac-candidates
           (mapcar (lambda (x)
                     (let* ((name (symbol-name (car x)))
-                           (node (js2ac-name-declaration name))
-                           (parent (js2-node-parent node))
-                           (init (cond
-                                  ((js2-function-node-p parent)
-                                   parent)
-                                  ((js2-function-node-p node)
-                                   node)
-                                  (t
-                                   (js2-var-init-node-initializer parent)))))
+                           (init (js2ac-initialized-node name)))
                       (js2ac-build-document-string name init)))
                   result))))
+
+(defun js2ac-initialized-node (name)
+  "Return initial value for NAME. NAME may be either a variable,
+a function or a variable that holds a function."
+  (let* ((node (js2ac-name-declaration name))
+         (parent (js2-node-parent node))
+         (init (cond
+                ((js2-function-node-p parent)
+                 parent)
+                ((js2-function-node-p node)
+                 node)
+                (t
+                 (js2-var-init-node-initializer parent)))))
+    init))
 
 (defun js2ac-build-document-string (name node)
   (let* ((node-above (js2-node-at-point
@@ -237,7 +262,7 @@ before issuing a request."
                         (point))))
          (comment (if (js2-comment-node-p node-above)
                       (js2-node-string node-above)))
-         (info (js2ac-format-node name init))
+         (info (js2ac-format-node name node))
          (interface (first (last info))))
     (if comment
         (setcdr info (concat (js2ac-tidy-comment comment) "\n" interface)))
@@ -258,11 +283,13 @@ before issuing a request."
 (defun js2ac-format-node (name node)
   "Formats NODE for completions. Returned format is a list
 where the first element is the NAME of the node (shown in
-completion candidate list), the second element is the text to
-show as documentation and the last element the absolute position of NODE."
+completion candidate list) and the last element is the text to
+show as documentation."
   (let ((doc (cond
               ((js2-object-node-p node)
-               (js2ac-format-object-node node))
+               (js2ac-format-object-node-doc node))
+              ((js2-object-prop-node-p node)
+               (js2ac-format-node-doc (js2-object-prop-node-right node)))
               ((js2-function-node-p node)
                (if (find name (js2-function-node-params node)
                          :test 'js2ac-param-name-p)
@@ -270,35 +297,42 @@ show as documentation and the last element the absolute position of NODE."
                  (js2ac-format-function node)))
               (t
                (js2-node-string node)))))
-    `(,name ,doc)))
+    `(,name . ,doc)))
 
 (defun js2ac-param-name-p (name param)
   "Used to check if NAME matches PARAM name."
   (string= name (js2-name-node-name param)))
 
-(defun js2ac-format-object-node (obj-node)
+(defun js2ac-format-object-node-doc (obj-node)
   (let (elems)
     (unless (js2-object-node-p obj-node)
       (error "Node is not an object node"))
     (setq elems (js2-object-node-elems obj-node))
     (if (not elems)
         "{}"
-      (mapconcat '(lambda (x) (js2ac-format-js2-object-prop x)) elems "\n"))))
+      (mapconcat '(lambda (x) (js2ac-format-js2-object-prop-doc x)) elems "\n"))))
 
-(defun js2ac-format-js2-object-prop (obj-prop)
+(defun js2ac-format-node-doc (node)
+  "Format NODE to display in a document string."
+  (let ((string (js2-node-string node)))
+    (cond
+     ((js2-function-node-p node)
+      (js2ac-format-function node))
+     ((js2-object-node-p node)
+      "[Object]")
+     (t
+      string))))
+
+
+
+(defun js2ac-format-js2-object-prop-doc (obj-prop)
+  "Format an OBJ-PROP for displaying as a document string."
   (unless (js2-object-prop-node-p obj-prop)
     (error "Node is not an object property node"))
   (let* ((left (js2-object-prop-node-left obj-prop))
-         (right (js2-object-prop-node-right obj-prop))
-         (right-string (js2-node-string right)))
+         (right (js2-object-prop-node-right obj-prop)))
     (concat (js2-node-string left) " : "
-            (cond
-             ((js2-function-node-p right)
-              (js2ac-format-function right))
-             ((js2-object-node-p right)
-              "[Object]")
-             (t
-              right-string)))))
+            (js2ac-format-node-doc right))))
 
 (defun js2ac-format-function (fun-node)
   (unless (js2-function-node-p fun-node)
@@ -322,6 +356,7 @@ be found."
     nil))
 
 (defun js2ac-jump-to-var ()
+  "Jump to the definition of a variable of function."
   (interactive)
   (let* ((node (js2-node-at-point))
          (parent (js2-node-parent node))
