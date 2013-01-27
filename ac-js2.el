@@ -75,13 +75,9 @@
 (defun js2ac-skewer-document-candidates (name)
   (cdr (assoc-string name js2ac-skewer-candidates)))
 
-(defun js2ac-get-object-properties (beg object)
-  "Find properties of OBJECT for completion. BEG is the position
-in the buffer of the name of the OBJECT."
-  (let ((code (buffer-substring-no-properties (point-min) (point-max)))
-        (name (or object (buffer-substring-no-properties beg end)))
-        (end (point)))
-    (js2ac-skewer-eval-wrapper name `((prototypes . ,js2ac-add-prototype-completions)))))
+(defun js2ac-get-object-properties (name)
+  "Find properties of NAME for completion."
+  (js2ac-skewer-eval-wrapper name `((prototypes . ,js2ac-add-prototype-completions))))
 
 (defun js2ac-skewer-eval-wrapper (name extras)
   "Ping the client to see if there are any browsers connected
@@ -121,18 +117,12 @@ before issuing a request."
         name)
     (setq js2ac-candidates nil)
     (cond
-     ((js2-prop-get-node-p node)
-      (setq beg (js2-node-abs-pos node))
-      (setq node (js2-prop-get-node-left node))
-      (setq name (if (js2-call-node-p node) (js2-node-string node) (js2-name-node-name node)))
-      (js2ac-get-object-properties beg name)
-      (js2ac-skewer-completion-candidates))
      ((looking-back "\\.")
       ;; TODO: Need to come up with a better way to extract object than this regex!!
       (save-excursion
         (setq beg (and (skip-chars-backward "[a-zA-Z_$][0-9a-zA-Z_$#\"())]+\\.") (point))))
       (setq name (buffer-substring-no-properties beg (1- (point))))
-      (js2ac-get-object-properties beg name)
+      (js2ac-get-object-properties name)
       (setq node (js2ac-initialized-node name))
       (if (js2-object-node-p node)
           (setq js2ac-candidates
@@ -141,8 +131,13 @@ before issuing a request."
                                              elem))
                         (js2-object-node-elems node))))
       (append (mapcar 'first js2ac-candidates)
-              (js2ac-skewer-completion-candidates))
-      )
+              (js2ac-skewer-completion-candidates)))
+     ((js2-prop-get-node-p node)
+      (setq node (js2-prop-get-node-left node))
+      (setq name (if (js2-call-node-p node) (js2-node-string node) (js2-name-node-name node)))
+      (js2ac-get-object-properties name)
+      (js2ac-skewer-completion-candidates))
+
      (t
       (js2ac-skewer-eval-wrapper "" `((method . ,js2ac-method-global)))
       (append (js2ac-skewer-completion-candidates)
@@ -151,7 +146,7 @@ before issuing a request."
 
 (defun js2ac-ac-document(name)
   "Loops over the names in the current scope and on all name nodes in parent nodes."
-  (let* ((doc (cdr (assoc name js2ac-candidates))))
+  (let ((doc (cdr (assoc name js2ac-candidates))))
     (if (listp doc) (first doc) doc)))
 
 (defun js2ac-ac-prefix()
