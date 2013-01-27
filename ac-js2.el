@@ -38,7 +38,7 @@
 (defcustom js2ac-evaluate-calls nil
   "Warning!!! When true function calls will be evaluated in the
   browser. This may cause undesired side effects however it will
-  provide better completions.")
+  provide better completions. Use at your own risk.")
 
 ;;; Internal variables
 
@@ -47,7 +47,7 @@
 
 (defvar js2ac-candidates '())
 
-;; Types of completion methods available
+;; Types of skewer completion methods available
 (defconst js2ac-method-eval 0)
 (defconst js2ac-method-global 1
   "For the time being only return keys of the global object due
@@ -96,12 +96,13 @@ before issuing a request."
           (setq js2ac-skewer-candidates nil))
         (when skewer-hide-comments
           (js2-mode-toggle-warnings-and-errors)
-          (setq skewer-hide-comments nil)))
-    (when (and js2-mode-show-parse-errors js2-mode-show-strict-warnings)
+          (setq skewer-hide-comments nil))
+        )
+    (when (and js2-mode-show-parse-errors js2-mode-show-strict-warnings (not skewer-hide-comments))
       (setq skewer-hide-comments t)
-      (js2-mode-toggle-warnings-and-errors))
-    (setq js2ac-skewer-candidates nil
-          skewer-queue nil)
+      (js2-mode-toggle-warnings-and-errors)
+      (setq js2ac-skewer-candidates nil
+            skewer-queue nil))
     (message "No skewer connected")))
 
 (defun js2ac-skewer-result-callback (result)
@@ -139,8 +140,8 @@ before issuing a request."
                           (js2ac-format-node (js2-node-string (js2-object-prop-node-left elem))
                                              elem))
                         (js2-object-node-elems node))))
-      (mapcar 'first js2ac-candidates)
-      ;; (js2ac-skewer-completion-candidates)
+      (append (mapcar 'first js2ac-candidates)
+              (js2ac-skewer-completion-candidates))
       )
      (t
       (js2ac-skewer-eval-wrapper "" `((method . ,js2ac-method-global)))
@@ -228,18 +229,17 @@ points can be found for each property in the chain."
 
 (defun js2ac-has-funtion-calls (string)
   "Checks if STRING contains a Js2-call-node."
-  (let (found)
-    (with-temp-buffer
-      (insert string)
-      (let* ((ast (js2-parse)))
-        (setq found (catch 'call-node
-                      (js2-visit-ast-root
-                       ast
-                       (lambda (node end-p)
-                         (unless end-p
-                           (if (js2-call-node-p node)
-                               (throw 'call-node t)
-                             t))))))))))
+  (with-temp-buffer
+    (insert string)
+    (let* ((ast (js2-parse)))
+      (catch 'call-node
+        (js2-visit-ast-root
+         ast
+         (lambda (node end-p)
+           (unless end-p
+             (if (js2-call-node-p node)
+                 (throw 'call-node t)
+               t))))))))
 
 (defun js2ac-add-extra-completions (completions)
   "Add extra candidates to COMPLETIONS."
@@ -282,16 +282,19 @@ points can be found for each property in the chain."
 
 (defun js2ac-initialized-node (name)
   "Return initial value for NAME. NAME may be either a variable,
-a function or a variable that holds a function."
+a function or a variable that holds a function. Returns nil if no
+initial value can be found."
   (let* ((node (js2ac-name-declaration name))
-         (parent (js2-node-parent node))
+         (parent (if node (js2-node-parent node)))
          (init (cond
                 ((js2-function-node-p parent)
                  parent)
                 ((js2-function-node-p node)
                  node)
+                ((js2-var-init-node-p parent)
+                 (js2-var-init-node-initializer parent))
                 (t
-                 (js2-var-init-node-initializer parent)))))
+                 nil))))
     init))
 
 (defun js2ac-build-document-string (name node)
