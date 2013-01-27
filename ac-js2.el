@@ -186,6 +186,46 @@ libraries if required."
 
 ;;; Helper functions
 
+(defun js2ac-build-prop-name-list (prop-node)
+  "Build a list of names from a js2-prop-get-node."
+  (let* (names
+         left
+         left-node)
+    (unless (js2-prop-get-node-p prop-node)
+      (error "Node is not a property prop-node"))
+    (while (js2-prop-get-node-p prop-node)
+      (push (js2-name-node-name (js2-prop-get-node-right prop-node)) names)
+      (setq left-node (js2-prop-get-node-left prop-node))
+      (when (js2-name-node-p left-node)
+        (setq left (js2-name-node-name left-node)))
+      (setq prop-node (js2-node-parent prop-node)))
+    (append names `(,left))))
+
+(defun js2ac-prop-names-left (name-node)
+  "Creates a list of all of the names of the property NAME-NODE.
+NAME-NODE must have a js2-prop-get-node as parent. Only adds
+properties to the left of point. This is so individual jump
+points can be found for each property in the chain."
+  (let* (name
+         (parent (js2-node-parent name-node))
+         left
+         names)
+    (unless (or (js2-prop-get-node-p parent) (js2-name-node-p name-node))
+      (error "Not a name node or doesn't have a prop-get-node as parent"))
+    (setq name (js2-name-node-name name-node)
+          left (js2-prop-get-node-left parent))
+    (if (and (js2-name-node-p left)
+             (string= name (js2-name-node-name left)))
+        (setq names name)
+      (js2-visit-ast
+       parent
+       (lambda (node endp)
+         (unless endp
+           (if (js2-name-node-p node)
+               (push (js2-name-node-name node) names)
+             t))))
+      names)))
+
 (defun js2ac-has-funtion-calls (string)
   "Checks if STRING contains a Js2-call-node."
   (let (found)
@@ -323,8 +363,6 @@ show as documentation."
      (t
       string))))
 
-
-
 (defun js2ac-format-js2-object-prop-doc (obj-prop)
   "Format an OBJ-PROP for displaying as a document string."
   (unless (js2-object-prop-node-p obj-prop)
@@ -340,7 +378,23 @@ show as documentation."
   (let ((str (js2-node-string fun-node)))
     (substring str 0 (1+ (string-match ")" str)))))
 
-;;; Navigation commands for js2-node
+;;; Navigation commands for js2-mode
+
+(defun js2ac-find-property (list-names)
+  "Find the property definition that matches the list of
+LIST-NAMEs. Currently only the form 'foo.bar = 3' is supported
+opposed to 'foo = {bar: 3}'."
+  (catch 'prop-found
+    (js2-visit-ast-root
+     js2-mode-ast
+     (lambda (node endp)
+       (let ((parent (js2-node-parent node)))
+         (unless endp
+           (if (and (js2-prop-get-node-p node)
+                    (not (or (js2-elem-get-node-p parent) (js2-call-node-p parent)))
+                    (equal list-names (js2ac-build-prop-name-list node)))
+               (throw 'prop-found node))
+           t))))))
 
 (defun js2ac-get-function-node (name scope)
   "Find NAME of function in SCOPE. Returns nil if node could not
@@ -356,16 +410,21 @@ be found."
     nil))
 
 (defun js2ac-jump-to-var ()
-  "Jump to the definition of a variable of function."
+  "Jump to the definition of an object's property, variable or
+function. Navigation to a property definend in an Object literal
+isn't implemented."
   (interactive)
   (let* ((node (js2-node-at-point))
          (parent (js2-node-parent node))
+         (prop-names (if (js2-prop-get-node-p parent)
+                         (js2ac-prop-names-left node)))
          (name (if (and (js2-name-node-p node)
-                        (not (js2-prop-get-node-p parent))
                         (not (js2-object-prop-node-p parent)))
                    (js2-name-node-name node)
                  (error "Node is not a supported jump node")))
-         (node-init (js2ac-name-declaration name)))
+         (node-init (if (and prop-names (listp prop-names))
+                        (js2ac-find-property prop-names)
+                      (js2ac-name-declaration name))))
     (unless node-init
       (error "No jump location found"))
     (push-mark)
