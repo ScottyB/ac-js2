@@ -145,9 +145,11 @@ before issuing a request."
                (mapcar 'first (js2ac-get-names-in-scope))))))))
 
 (defun js2ac-ac-document(name)
-  "Loops over the names in the current scope and on all name nodes in parent nodes."
-  (let ((doc (cdr (assoc name js2ac-candidates))))
-    (if (listp doc) (first doc) doc)))
+  "Show documentation for NAME from local buffer if present
+otherwise check skewer documentation."
+  (let* ((docs (cdr (assoc name js2ac-candidates)))
+         (doc (if (listp docs) (first docs) docs)))
+    (if doc doc (js2ac-skewer-document-candidates name))))
 
 (defun js2ac-ac-prefix()
   (or (ac-prefix-default) (ac-prefix-c-dot)))
