@@ -397,7 +397,7 @@ be found."
        t))
     nil))
 
-(defun js2ac-jump-to-var ()
+(defun js2ac-jump-to-definition ()
   "Jump to the definition of an object's property, variable or
 function. Navigation to a property definend in an Object literal
 isn't implemented."
@@ -427,7 +427,7 @@ the function if present."
             (if (js2-var-init-node-p parent)
                 (js2-name-node-name (js2-var-init-node-target parent)))))))
 
-(define-key js2-mode-map (kbd "M-.") 'js2ac-jump-to-var)
+(define-key js2-mode-map (kbd "M-.") 'js2ac-jump-to-definition)
 
 (provide 'ac-js2)
 
