@@ -79,7 +79,7 @@
   "Find properties of NAME for completion."
   (js2ac-skewer-eval-wrapper name `((prototypes . ,js2ac-add-prototype-completions))))
 
-(defun js2ac-skewer-eval-wrapper (name extras)
+(defun js2ac-skewer-eval-wrapper (name &optional extras)
   "Ping the client to see if there are any browsers connected
 before issuing a request."
   (if (skewer-ping)
@@ -159,12 +159,11 @@ otherwise check skewer documentation."
 libraries if required."
   (when (not skewer-clients)
     (run-skewer)
-    (if js2ac-evaluate-calls
-        (mapcar (lambda (library)
-                  (with-temp-buffer
-                    (insert-file-contents library)
-                    (skewer-load-buffer))) js2ac-external-javscript-libraries)))
-  (if js2ac-evaluate-calls (skewer-load-buffer))
+    (mapcar (lambda (library)
+              (with-temp-buffer
+                (insert-file-contents library)
+                (js2ac-skewer-load-buffer))) js2ac-external-javscript-libraries))
+  (js2ac-skewer-load-buffer)
   (setq ac-sources '(ac-source-js2)))
 
 (add-hook 'js2-mode-hook 'js2ac-mode-sources)
@@ -172,7 +171,7 @@ libraries if required."
 (defun js2ac-skewer-load-buffer ()
   (and (string= major-mode "js2-mode")
        js2ac-evaluate-calls
-       (skewer-load-buffer)))
+       (js2ac-skewer-eval-wrapper (buffer-substring-no-properties (point-min) (point-max)))))
 
 (add-hook 'before-save-hook 'js2ac-skewer-load-buffer)
 
