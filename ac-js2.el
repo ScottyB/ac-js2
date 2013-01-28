@@ -243,7 +243,7 @@ points can be found for each property in the chain."
           (if js2ac-add-ecma-262-externs js2-ecma-262-externs)
           (if js2ac-add-browser-externs js2-browser-externs)))
 
-(defun js2ac-tidy-comment (comment)
+(defun js2ac-format-comment (comment)
   (let* ((node-string (if (js2-comment-node-p comment)
                           (js2-node-string comment)
                         comment))
@@ -272,7 +272,7 @@ points can be found for each property in the chain."
           (mapcar (lambda (x)
                     (let* ((name (symbol-name (car x)))
                            (init (js2ac-initialized-node name)))
-                      (js2ac-build-document-string name init)))
+                      (js2ac-format-node name init)))
                   result))))
 
 (defun js2ac-initialized-node (name)
@@ -292,20 +292,6 @@ initial value can be found."
                  nil))))
     init))
 
-(defun js2ac-build-document-string (name node)
-  (let* ((node-above (js2-node-at-point
-                      (save-excursion
-                        (goto-char (js2-node-abs-pos node))
-                        (forward-line -1)
-                        (point))))
-         (comment (if (js2-comment-node-p node-above)
-                      (js2-node-string node-above)))
-         (info (js2ac-format-node name node))
-         (interface (first (last info))))
-    (if comment
-        (setcdr info (concat (js2ac-tidy-comment comment) "\n" interface)))
-    info))
-
 (defun js2ac-name-declaration (name)
   "Returns the declaration node for node named NAME."
   (let* ((node (js2ac-root-or-node))
@@ -323,18 +309,11 @@ initial value can be found."
 where the first element is the NAME of the node (shown in
 completion candidate list) and the last element is the text to
 show as documentation."
-  (let ((doc (cond
-              ((js2-object-node-p node)
-               (js2ac-format-object-node-doc node))
-              ((js2-object-prop-node-p node)
-               (js2ac-format-node-doc (js2-object-prop-node-right node)))
-              ((js2-function-node-p node)
-               (if (find name (js2-function-node-params node)
-                         :test 'js2ac-param-name-p)
-                   "Function parameter"
-                 (js2ac-format-function node)))
-              (t
-               (js2-node-string node)))))
+  (let ((node (if (js2-object-prop-node-p node) (js2-object-prop-node-right node) node))
+        (doc (if (and (js2-function-node-p node)
+                      (find name (js2-function-node-params node) :test 'js2ac-param-name-p))
+                 "Function parameter"
+               (js2ac-format-node-doc node))))
     `(,name . ,doc)))
 
 (defun js2ac-param-name-p (name param)
@@ -351,15 +330,23 @@ show as documentation."
       (mapconcat '(lambda (x) (js2ac-format-js2-object-prop-doc x)) elems "\n"))))
 
 (defun js2ac-format-node-doc (node)
-  "Format NODE to display in a document string."
-  (let ((string (js2-node-string node)))
-    (cond
-     ((js2-function-node-p node)
-      (js2ac-format-function node))
-     ((js2-object-node-p node)
-      "[Object]")
-     (t
-      string))))
+  "Format NODE for displaying in a document string."
+  (let* ((string (if (js2-node-p node) (js2-node-string node) node))
+         (node-above (and node (js2-node-at-point
+                                (save-excursion
+                                  (goto-char (js2-node-abs-pos node))
+                                  (forward-line -1)
+                                  (point)))))
+         (comment (if (js2-comment-node-p node-above)
+                      (js2ac-format-comment (js2-node-string node-above))))
+         (doc (cond
+               ((js2-function-node-p node)
+                (js2ac-format-function node))
+               ((js2-object-node-p node)
+                (js2ac-format-object-node-doc node))
+               (t
+                (or string "")))))
+    (if comment (concat comment "\n" doc) doc)))
 
 (defun js2ac-format-js2-object-prop-doc (obj-prop)
   "Format an OBJ-PROP for displaying as a document string."
