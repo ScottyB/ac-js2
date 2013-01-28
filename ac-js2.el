@@ -83,7 +83,7 @@
 (defun js2ac-skewer-eval-wrapper (name &optional extras)
   "Ping the client to see if there are any browsers connected
 before issuing a request."
-  (if (skewer-ping)
+  (if skewer-clients
       (progn
         (if (or js2ac-evaluate-calls
                 (not (js2ac-has-funtion-calls name)))
@@ -95,11 +95,11 @@ before issuing a request."
           (js2-mode-toggle-warnings-and-errors))
         (setq skewer-hide-comments nil))
     (when (and js2-mode-show-parse-errors js2-mode-show-strict-warnings (not skewer-hide-comments))
-      (setq skewer-hide-comments t)
-      (js2-mode-toggle-warnings-and-errors)
-      (setq js2ac-skewer-candidates nil
-            skewer-queue nil))
-    (message "No skewer connected")))
+      (js2-mode-toggle-warnings-and-errors))
+    (setq skewer-hide-comments t)
+    (setq js2ac-skewer-candidates nil
+          skewer-queue nil)
+    (message "No skewer connected or error browser side")))
 
 (defun js2ac-skewer-result-callback (result)
   "Callback called once browser has evaluated the properties for an object."
