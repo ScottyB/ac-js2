@@ -10,6 +10,7 @@
  * @returns The completions and init values to be returned to Emacs
  */
 skewer.fn.complete = function(request) {
+    "use strict";
     var result =  {
         type : request.type,
         id : request.id,
@@ -28,25 +29,25 @@ skewer.fn.complete = function(request) {
         globalCompletion = function() {
             var global = Function('return this')(),
                 keys = Object.keys(global);
-            buildCandidates(global, keys);
+            candidates = buildCandidates(global, keys);
         },
 
         evalCompletion = function(evalObject) {
             var obj = (eval, eval)(evalObject);
             if (typeof obj === "object") {
-                buildCandidates(obj);
+                candidates = buildCandidates(obj) || {};
                 while (request.prototypes && (obj = Object.getPrototypeOf(obj)) !== null) {
-                    buildCandidates(obj);
+                    jQuery.extend(candidates, buildCandidates(obj));
                 }
             } else if (typeof obj === "function"){
-                buildCandidates(obj);
-                buildCandidates(Object.getPrototypeOf(obj));
+                candidates = buildCandidates(obj) || {};
+                jQuery.extend(candidates, buildCandidates(Object.getPrototypeOf(obj)));
                 if (request.prototypes) {
                     var protoObject = Object.getPrototypeOf(obj.prototype);
                     if (protoObject !== null) {
-                        buildCandidates(protoObject);
+                        jQuery.extend(candidates, buildCandidates(protoObject));
                     } else {
-                        buildCandidates(obj.prototype);
+                        jQuery.extend(candidates, buildCandidates(obj.prototype));
                     }
                 }
             }
@@ -63,35 +64,37 @@ skewer.fn.complete = function(request) {
          * Build the candiates to return to Emacs.
          * @param obj The object to get candidates from
          * @param items The selected keys from obj to create candidates for
+         * @return object containing completion candidates and documentation strings
          */
         buildCandidates = function(obj, items) {
-            var keys = items || Object.getOwnPropertyNames(obj);
+            var keys = items || Object.getOwnPropertyNames(obj), values = {};
             for (var i = 0; i < keys.length; i++) {
                 var key = keys[i];
                 if (Object.prototype.toString.call(obj[key]) === "[object Function]") {
                     var str = obj[key].toString();
                     if (str.indexOf('[native code]') !== -1) {
-                        candidates[key] = str;
+                        values[key] = str;
                     } else {
                         var pos = str.indexOf(")");
-                        candidates[key] = str.substring(0, pos +1);
+                        values[key] = str.substring(0, pos +1);
                     }
                 } else if (typeof obj[key] === "object"){
-                    candidates[key] = "[object Object]";
+                    values[key] = "[object Object]";
                 } else if (typeof obj[key] === "number") {
                     if (!(obj instanceof Array)) {
-                        candidates[key] = obj[key].toString();
+                        values[key] = obj[key].toString();
                     }
                 } else if (typeof obj[key] === "string") {
-                    candidates[key] = obj[key].toString();
+                    values[key] = obj[key].toString();
                 } else if(obj[key] === true) {
-                    candidates[key] = "true";
+                    values[key] = "true";
                 } else if (obj[key] === false) {
-                    candidates[key] = "false";
+                    values[key] = "false";
                 } else {
-                    candidates[key] = "";
+                    values[key] = "";
                 }
             }
+            return values;
         };
     try {
         switch (request.method) {
