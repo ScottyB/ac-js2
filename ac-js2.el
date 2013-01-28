@@ -91,9 +91,8 @@ before issuing a request."
                          :extra extras)
           (setq js2ac-skewer-candidates nil))
         (when skewer-hide-comments
-          (js2-mode-toggle-warnings-and-errors)
-          (setq skewer-hide-comments nil))
-        )
+          (js2-mode-toggle-warnings-and-errors))
+        (setq skewer-hide-comments nil))
     (when (and js2-mode-show-parse-errors js2-mode-show-strict-warnings (not skewer-hide-comments))
       (setq skewer-hide-comments t)
       (js2-mode-toggle-warnings-and-errors)
