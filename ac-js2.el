@@ -73,7 +73,8 @@
   (mapcar (lambda (candidate) (symbol-name (car candidate))) js2ac-skewer-candidates))
 
 (defun js2ac-skewer-document-candidates (name)
-  (cdr (assoc-string name js2ac-skewer-candidates)))
+  (let ((doc (cdr (assoc-string name js2ac-skewer-candidates))))
+    (or (js2ac-format-function doc) doc)))
 
 (defun js2ac-get-object-properties (name)
   "Find properties of NAME for completion."
@@ -357,11 +358,12 @@ show as documentation."
     (concat (js2-node-string left) " : "
             (js2ac-format-node-doc right))))
 
-(defun js2ac-format-function (fun-node)
-  (unless (js2-function-node-p fun-node)
-    (error "Node is not a function node"))
-  (let ((str (js2-node-string fun-node)))
-    (substring str 0 (1+ (string-match ")" str)))))
+(defun js2ac-format-function (func)
+  "Formats a function for a document string. FUNC can be
+either a function node or a string starting with 'function'. Returns nil if neither."
+  (let ((str (or (and (js2-function-node-p func) (js2-node-string func))
+                 (and (stringp func) (eq 0 (string-match "function" func)) func))))
+    (if str (substring str 0 (1+ (string-match ")" str))))))
 
 ;;; Navigation commands for js2-mode
 

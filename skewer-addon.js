@@ -10,7 +10,6 @@
  * @returns The completions and init values to be returned to Emacs
  */
 skewer.fn.complete = function(request) {
-    "use strict";
     var result =  {
         type : request.type,
         id : request.id,
@@ -71,13 +70,7 @@ skewer.fn.complete = function(request) {
             for (var i = 0; i < keys.length; i++) {
                 var key = keys[i];
                 if (Object.prototype.toString.call(obj[key]) === "[object Function]") {
-                    var str = obj[key].toString();
-                    if (str.indexOf('[native code]') !== -1) {
-                        values[key] = str;
-                    } else {
-                        var pos = str.indexOf(")");
-                        values[key] = str.substring(0, pos +1);
-                    }
+                    values[key] = obj[key].toString();
                 } else if (typeof obj[key] === "object"){
                     values[key] = "[object Object]";
                 } else if (typeof obj[key] === "number") {
