@@ -332,8 +332,7 @@ show as documentation."
 
 (defun js2ac-format-node-doc (node)
   "Format NODE for displaying in a document string."
-  (let* ((string (if (js2-node-p node) (js2-node-string node) node))
-         (node-above (and node (js2-node-at-point
+  (let* ((node-above (and node (js2-node-at-point
                                 (save-excursion
                                   (goto-char (js2-node-abs-pos node))
                                   (forward-line -1)
@@ -345,8 +344,10 @@ show as documentation."
                 (js2ac-format-function node))
                ((js2-object-node-p node)
                 (js2ac-format-object-node-doc node))
+               ((js2-object-prop-node-p node)
+                (js2ac-format-node-doc (js2-object-prop-node-right node)))
                (t
-                (or string "")))))
+                (if (js2-node-p node) (js2-node-string node) "")))))
     (if comment (concat comment "\n" doc) doc)))
 
 (defun js2ac-format-js2-object-prop-doc (obj-prop)
