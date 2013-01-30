@@ -7,6 +7,7 @@ projects such as Js2-mode, Skewer-mode and Js2-refactor I decided to
 add to the concept of Emacs as a Javascript IDE.
 
 Here is a screenshot of the auto completion in action.
+
 ![Completion](https://raw.github.com/ScottyB/ac-js2/master/images/function-interface.png)
 
 ## Features
@@ -42,7 +43,7 @@ definitions.
  * Completion of variable and function names in current scope
  * Popup documentation for variables and function names in buffer
 
-** Notes:** Navigation only works if the definition is in the same file.
+**Note:** Navigation only works if the definition is in the same file.
 
 ## Installation
 
@@ -78,7 +79,8 @@ Add the following to your init.el:
 ```
 
 Copy the snippet below if you want to evaluate your Javascript code
-for completions. This may have undesired side effects dependent on your code.
+for candidates. Not setting this value will still provide you with basic completion.
+Something that I hope to improve in the future.
 
 ```
 (setq js2ac-evaluate-calls t)
@@ -95,3 +97,4 @@ have initialised `js2ac-evaluate-calls` to t if you add any libraries.
 
 Open up a Javascript file and a browser window will open to a blank
 page. Jump back to Emacs to test out the auto completion.
+
