@@ -120,7 +120,7 @@ before issuing a request."
         (setq beg (and (skip-chars-backward "[a-zA-Z_$][0-9a-zA-Z_$#\"())]+\\.") (point))))
       (setq name (buffer-substring-no-properties beg (1- (point))))
       (js2ac-get-object-properties name)
-      (setq node (js2ac-initialized-node name))
+      (setq node (js2ac-initialized-node (if (string-match "\\." name) (reverse (split-string name "\\.")) name)))
       (if (js2-object-node-p node)
           (setq js2ac-candidates
                 (mapcar (lambda (elem)
@@ -131,10 +131,9 @@ before issuing a request."
               (js2ac-skewer-completion-candidates)))
      ((js2-prop-get-node-p node)
       (setq node (js2-prop-get-node-left node))
-      (setq name (if (js2-call-node-p node) (js2-node-string node) (js2-name-node-name node)))
+      (setq name (js2-node-string node))
       (js2ac-get-object-properties name)
       (js2ac-skewer-completion-candidates))
-
      (t
       (js2ac-skewer-eval-wrapper "" `((method . ,js2ac-method-global)))
       (append (js2ac-skewer-completion-candidates)
@@ -277,7 +276,8 @@ points can be found for each property in the chain."
   "Return initial value for NAME. NAME may be either a variable,
 a function or a variable that holds a function. Returns nil if no
 initial value can be found."
-  (let* ((node (js2ac-name-declaration name))
+  (let* ((node (if (listp name) (js2ac-find-property name)
+                 (js2ac-name-declaration name)))
          (parent (if node (js2-node-parent node)))
          (init (cond
                 ((js2-function-node-p parent)
@@ -286,6 +286,8 @@ initial value can be found."
                  node)
                 ((js2-var-init-node-p parent)
                  (js2-var-init-node-initializer parent))
+                ((js2-assign-node-p parent)
+                 (js2-assign-node-right parent))
                 (t
                  nil))))
     init))
