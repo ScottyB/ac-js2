@@ -1,45 +1,14 @@
 
 * Features
   - Need to handle a function call with params i.e. jQuery("#hello", aHtml + test).
-  - Possibly support multiple files
-  - Look at completing in a closure
   - Extend current property completion to handle chaining
   - Look at jedi.el for showing parameters when in function parameter list
   - Add tests
   - Add to a package manager
   - Suport auto completion in the repl
-  - Add support for documentation of prototypes
-  - Need to be able to traverse the ast for a prototype
+  - Need to be able to traverse the ast for prototype completions
 * Bugs:
   - show wrong candidates when switching objects first time
-  - auto completion sometimes requires "." to be entered twice
   - third function in prototype chain wont complete
-  - ScopeObject related:
-    - Function parameters need to be added
-    - Automatically adds ';' for partially entered values
 * Ideas
   - Add yasnippet expansion when calling functions
-  - On server error flush the skewer queue or when no clients
-  - Error reporting once there is no skewer clients
-* Notes
-  - Methods for adding properties to an object:
-
-    var obj = { hello : 5, "he" : "jame"};
-
-    obj["pizza"] = 3;
-
-    obj.tmp = "hello scott";
-
-    obj.tuple = (function(able, cable) {return 15;})();
-
-    obj["fn"] = function() { var a = "lots of code";};
-
-
-
-  - Format:
-    - Call nodes
-    - Function nodes
-
-
-  - Structure:
-    - cl-struct-js2-assign-node

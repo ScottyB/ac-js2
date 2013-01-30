@@ -154,6 +154,7 @@ otherwise check skewer documentation."
   "Starts skewer if not already running and loads external
 libraries if required."
   (when (not skewer-clients)
+    ;; TODO come up with a better way than opening more browser tabs
     (run-skewer)
     (mapcar (lambda (library)
               (with-temp-buffer
