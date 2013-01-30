@@ -7,6 +7,10 @@
   - Add to a package manager
   - Suport auto completion in the repl
   - Need to be able to traverse the ast for prototype completions
+  - Improve documentation in readme
+  - Refactor code to provide a single method to access declaration of var, function or object property.
+  - Tidy up js2ac-ac-candidates.
+  - Improve/add documentation of code
 * Bugs:
   - show wrong candidates when switching objects first time
   - third function in prototype chain wont complete
