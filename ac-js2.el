@@ -1,5 +1,23 @@
 ;;; ac-js2.el --- Autocomplete source for Js2-mode
 
+;; Copyright (C) 2013  Scott Barnett
+
+;; Author: Scott Barnett <scott.n.barnett@gmail.com>
+;; Keywords: convenience, languages
+
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 ;;; Commentary:
 ;;
 ;; An attempt to get context sensitive completion in Emacs.
@@ -33,43 +51,46 @@
   "When non-nil traverse the prototype chain adding to completion candidates.")
 
 (defcustom js2ac-external-javscript-libraries '()
-  "List of absolute paths to external Javascript libraries. ")
+  "List of absolute paths to external Javascript libraries.")
 
 (defcustom js2ac-evaluate-calls nil
-  "Warning!!! When true function calls will be evaluated in the
-  browser. This may cause undesired side effects however it will
+  "Warning!!! When true function calls will be evaluated in the browser.
+This may cause undesired side effects however it will
   provide better completions. Use at your own risk.")
 
 ;;; Internal variables
 
 (defvar js2ac-keywords '()
-  "Cached string version of js2-keywords")
+  "Cached string version of `js2-keywords'.")
 
 (defvar js2ac-candidates '())
 
 ;; Types of skewer completion methods available
 (defconst js2ac-method-eval 0)
 (defconst js2ac-method-global 1
-  "For the time being only return keys of the global object due
-  to including the externs from Js2. This is done to provide
-  configuration options for the user.")
+  "Return candidates for the global object.
+Only keys of the object are returned as the other properties come
+  from js2-mode's externs.")
 
 (defvar skewer-hide-comments nil)
 
 ;;; Skewer integration
 
 (defvar js2ac-skewer-candidates '()
-  "Cadidates obtained from skewering")
+  "Cadidates obtained from skewering.")
 
 (defun js2ac-on-skewer-load ()
+  "Add skewer-addon.js to skewer for evaluation."
   (insert-file-contents (expand-file-name "skewer-addon.js")))
 
 (add-hook 'skewer-js-hook 'js2ac-on-skewer-load)
 
 (defun js2ac-skewer-completion-candidates ()
+  "Return completions returned from skewer."
   (mapcar (lambda (candidate) (symbol-name (car candidate))) js2ac-skewer-candidates))
 
 (defun js2ac-skewer-document-candidates (name)
+  "Return document string for NAME from skewer."
   (let ((doc (cdr (assoc-string name js2ac-skewer-candidates))))
     (or (js2ac-format-function doc) doc)))
 
@@ -78,8 +99,12 @@
   (js2ac-skewer-eval-wrapper name `((prototypes . ,js2ac-add-prototype-completions))))
 
 (defun js2ac-skewer-eval-wrapper (name &optional extras)
-  "Ping the client to see if there are any browsers connected
-before issuing a request."
+  "Wrap `skewer-eval' to check if a skewer-client is avilable.
+NAME is the text to send to the browser for evaluation. Extra
+parameters can be passed to the browser using EXTRAS. EXTRAS must
+be of the form (param-string . value) where param-string is the
+reference and value is the value that can be retrieved from the
+request object in Javacript."
   (if skewer-clients
       (progn
         (if (or js2ac-evaluate-calls
@@ -99,7 +124,7 @@ before issuing a request."
     (message "No skewer connected or error browser side")))
 
 (defun js2ac-skewer-result-callback (result)
-  "Callback called once browser has evaluated the properties for an object."
+  "Callback with RESULT passed from the browser."
   (let ((value (cdr (assoc 'value result))))
     (if (and (skewer-success-p result) value)
         (setq js2ac-skewer-candidates (append value nil))
@@ -151,8 +176,8 @@ otherwise check skewer documentation."
   (or (ac-prefix-default) (ac-prefix-c-dot)))
 
 (defun js2ac-mode-sources ()
-  "Starts skewer if not already running and loads external
-libraries if required."
+  "Set up the auto-completion sources for Js2-mode.
+Loads external libraries if required."
   (when (not skewer-clients)
     ;; TODO come up with a better way than opening more browser tabs
     (run-skewer)
@@ -166,6 +191,7 @@ libraries if required."
 (add-hook 'js2-mode-hook 'js2ac-mode-sources)
 
 (defun js2ac-skewer-load-buffer ()
+  "Hook called before saving to evaluate current buffer."
   (and (string= major-mode "js2-mode")
        js2ac-evaluate-calls
        (js2ac-skewer-eval-wrapper (buffer-substring-no-properties (point-min) (point-max)))))
@@ -181,7 +207,7 @@ libraries if required."
 ;;; Helper functions
 
 (defun js2ac-build-prop-name-list (prop-node)
-  "Build a list of names from a js2-prop-get-node."
+  "Build a list of names from a PROP-NODE."
   (let* (names
          left
          left-node)
@@ -196,7 +222,7 @@ libraries if required."
     (append names `(,left))))
 
 (defun js2ac-prop-names-left (name-node)
-  "Creates a list of all of the names of the property NAME-NODE.
+  "Create a list of all of the names in the property NAME-NODE.
 NAME-NODE must have a js2-prop-get-node as parent. Only adds
 properties to the left of point. This is so individual jump
 points can be found for each property in the chain."
@@ -221,7 +247,7 @@ points can be found for each property in the chain."
       names)))
 
 (defun js2ac-has-funtion-calls (string)
-  "Checks if STRING contains a Js2-call-node."
+  "Check if the Javascript code in STRING has a Js2-call-node."
   (with-temp-buffer
     (insert string)
     (let* ((ast (js2-parse)))
@@ -242,6 +268,7 @@ points can be found for each property in the chain."
           (if js2ac-add-browser-externs js2-browser-externs)))
 
 (defun js2ac-format-comment (comment)
+  "Prepare a COMMENT node for displaying in a popup."
   (let* ((node-string (if (js2-comment-node-p comment)
                           (js2-node-string comment)
                         comment))
@@ -250,6 +277,7 @@ points can be found for each property in the chain."
     string))
 
 (defun js2ac-root-or-node ()
+  "Return the current node or js2-ast-root node."
   (let ((node (js2-node-at-point)))
     (if (js2-ast-root-p node)
         node
@@ -274,9 +302,9 @@ points can be found for each property in the chain."
                   result))))
 
 (defun js2ac-initialized-node (name)
-  "Return initial value for NAME. NAME may be either a variable,
-a function or a variable that holds a function. Returns nil if no
-initial value can be found."
+  "Return initial value assigned to NAME.
+NAME may be either a variable, a function or a variable that
+holds a function. Returns nil if no initial value can be found."
   (let* ((node (if (listp name) (js2ac-find-property name)
                  (js2ac-name-declaration name)))
          (parent (if node (js2-node-parent node)))
@@ -294,7 +322,7 @@ initial value can be found."
     init))
 
 (defun js2ac-name-declaration (name)
-  "Returns the declaration node for node named NAME."
+  "Return the declaration node for node named NAME."
   (let* ((node (js2ac-root-or-node))
          (scope-def (js2-get-defining-scope node name))
          (scope (if scope-def (js2-scope-get-symbol scope-def name) nil))
@@ -306,22 +334,20 @@ initial value can be found."
 ;;; Completion candidate formating
 
 (defun js2ac-format-node (name node)
-  "Formats NODE for completions. Returned format is a list
-where the first element is the NAME of the node (shown in
-completion candidate list) and the last element is the text to
-show as documentation."
+  "Format NAME and NODE for completion.
+Returned format is a list where the first element is the NAME of
+the node (shown in completion candidate list) and the last
+element is the text to show as documentation."
   (let ((node (if (js2-object-prop-node-p node) (js2-object-prop-node-right node) node))
         (doc (if (and (js2-function-node-p node)
-                      (find name (js2-function-node-params node) :test 'js2ac-param-name-p))
+                      (find name (js2-function-node-params node)
+                            :test '(lambda (name param) (string= name (js2-name-node-name param)))))
                  "Function parameter"
                (js2ac-format-node-doc node))))
     `(,name . ,doc)))
 
-(defun js2ac-param-name-p (name param)
-  "Used to check if NAME matches PARAM name."
-  (string= name (js2-name-node-name param)))
-
 (defun js2ac-format-object-node-doc (obj-node)
+  "Format OBJ-NODE to display as documentation."
   (let (elems)
     (unless (js2-object-node-p obj-node)
       (error "Node is not an object node"))
@@ -360,8 +386,9 @@ show as documentation."
             (js2ac-format-node-doc right))))
 
 (defun js2ac-format-function (func)
-  "Formats a function for a document string. FUNC can be
-either a function node or a string starting with 'function'. Returns nil if neither."
+  "Formats a function for a document string.
+FUNC can be either a function node or a string starting with
+'function'. Returns nil if neither."
   (let ((str (or (and (js2-function-node-p func) (js2-node-string func))
                  (and (stringp func) (eq 0 (string-match "function" func)) func))))
     (if str (substring str 0 (1+ (string-match ")" str))))))
@@ -369,9 +396,9 @@ either a function node or a string starting with 'function'. Returns nil if neit
 ;;; Navigation commands for js2-mode
 
 (defun js2ac-find-property (list-names)
-  "Find the property definition that matches the list of
-LIST-NAMEs. Currently only the form 'foo.bar = 3' is supported
-opposed to 'foo = {bar: 3}'."
+  "Find the property definition that consists of LIST-NAMES.
+Currently only the form 'foo.bar = 3' is supported opposed to
+'foo = {bar: 3}'."
   (catch 'prop-found
     (js2-visit-ast-root
      js2-mode-ast
@@ -385,8 +412,7 @@ opposed to 'foo = {bar: 3}'."
            t))))))
 
 (defun js2ac-get-function-node (name scope)
-  "Find NAME of function in SCOPE. Returns nil if node could not
-be found."
+  "Return node of function named NAME in SCOPE."
   (catch 'function-found
     (js2-visit-ast
      scope
@@ -398,9 +424,9 @@ be found."
     nil))
 
 (defun js2ac-jump-to-definition ()
-  "Jump to the definition of an object's property, variable or
-function. Navigation to a property definend in an Object literal
-isn't implemented."
+  "Jump to the definition of an object's property, variable or function.
+Navigation to a property definend in an Object literal isn't
+implemented."
   (interactive)
   (let* ((node (js2-node-at-point))
          (parent (js2-node-parent node))
@@ -419,8 +445,9 @@ isn't implemented."
     (goto-char (js2-node-abs-pos node-init))))
 
 (defun js2ac-get-function-name (fn-node)
-  "Returns the name of the function or the variable that holds
-the function if present."
+  "Return the name of the function FN-NODE.
+Value may be either function name or the variable name that holds
+the function."
   (let ((parent (js2-node-parent fn-node)))
     (if (js2-function-node-p fn-node)
         (or (js2-function-name fn-node)
