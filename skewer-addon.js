@@ -69,6 +69,7 @@ skewer.fn.complete = function(request) {
             var keys = items || Object.getOwnPropertyNames(obj), values = {};
             for (var i = 0; i < keys.length; i++) {
                 var key = keys[i];
+                if (key === "callee" || key === "caller" || key === "arguments") continue;
                 if (Object.prototype.toString.call(obj[key]) === "[object Function]") {
                     values[key] = obj[key].toString();
                 } else if (typeof obj[key] === "object"){

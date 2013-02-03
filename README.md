@@ -90,11 +90,11 @@ Add any external Javascript files to the variable below. Make sure you
 have initialised `js2ac-evaluate-calls` to t if you add any libraries.
 
 ```
-(setq js2ac-external-javscript-libraries `("Codemirror.js"))
+(add-to-list 'js2ac-external-libraries `("full/path/to/a-library.js"))
 ```
 
 ## Usage
 
-Open up a Javascript file and a browser window will open to a blank
-page. Jump back to Emacs to test out the auto completion.
-
+Call `run-skewer` and open up a Javascript file. If
+`js2ac-evaluate-calls` is t then make a minor change and save the file
+to get completions for objects in buffer.

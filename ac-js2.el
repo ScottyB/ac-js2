@@ -50,11 +50,11 @@
 (defcustom js2ac-add-prototype-completions t
   "When non-nil traverse the prototype chain adding to completion candidates.")
 
-(defcustom js2ac-external-javscript-libraries '()
-  "List of absolute paths to external Javascript libraries.")
+(defcustom js2ac-external-libraries '()
+    "List of absolute paths to external Javascript libraries.")
 
 (defcustom js2ac-evaluate-calls nil
-  "Warning!!! When true function calls will be evaluated in the browser.
+  "Warning. When true function calls will be evaluated in the browser.
 This may cause undesired side effects however it will
   provide better completions. Use at your own risk.")
 
@@ -74,6 +74,10 @@ Only keys of the object are returned as the other properties come
 
 (defvar skewer-hide-comments nil)
 
+(defvar js2ac-data-root (file-name-directory load-file-name)
+    "Location of data files needed for js2ac-on-skewer-load")
+
+
 ;;; Skewer integration
 
 (defvar js2ac-skewer-candidates '()
@@ -81,7 +85,15 @@ Only keys of the object are returned as the other properties come
 
 (defun js2ac-on-skewer-load ()
   "Add skewer-addon.js to skewer for evaluation."
-  (insert-file-contents (expand-file-name "skewer-addon.js")))
+  (insert-file-contents (expand-file-name "skewer-addon.js" js2ac-data-root))
+  (and js2ac-evaluate-calls
+       (mapcar (lambda (library)
+              (with-temp-buffer
+                  (insert-file-contents (expand-file-name library))
+                  (js2-mode)
+                  (skewer-eval (buffer-substring-no-properties (point-min) (point-max))
+                               #'js2ac-skewer-result-callback
+                               :type "complete"))) js2ac-external-libraries)))
 
 (add-hook 'skewer-js-hook 'js2ac-on-skewer-load)
 
@@ -99,7 +111,7 @@ Only keys of the object are returned as the other properties come
   (js2ac-skewer-eval-wrapper name `((prototypes . ,js2ac-add-prototype-completions))))
 
 (defun js2ac-skewer-eval-wrapper (name &optional extras)
-  "Wrap `skewer-eval' to check if a skewer-client is avilable.
+    "Wrap `skewer-eval' to check if a skewer-client is avilable.
 NAME is the text to send to the browser for evaluation. Extra
 parameters can be passed to the browser using EXTRAS. EXTRAS must
 be of the form (param-string . value) where param-string is the
@@ -111,24 +123,16 @@ request object in Javacript."
                 (not (js2ac-has-funtion-calls name)))
             (skewer-eval name #'js2ac-skewer-result-callback
                          :type "complete"
-                         :extra extras)
-          (setq js2ac-skewer-candidates nil))
-        (when skewer-hide-comments
-          (js2-mode-toggle-warnings-and-errors))
-        (setq skewer-hide-comments nil))
-    (when (and js2-mode-show-parse-errors js2-mode-show-strict-warnings (not skewer-hide-comments))
-      (js2-mode-toggle-warnings-and-errors))
-    (setq skewer-hide-comments t)
-    (setq js2ac-skewer-candidates nil
-          skewer-queue nil)
-    (message "No skewer connected or error browser side")))
+                         :extra extras)))
+      (setq skewer-queue nil)
+      (setq js2ac-skewer-candidates nil)))
 
 (defun js2ac-skewer-result-callback (result)
   "Callback with RESULT passed from the browser."
   (let ((value (cdr (assoc 'value result))))
     (if (and (skewer-success-p result) value)
         (setq js2ac-skewer-candidates (append value nil))
-      (setq js2ac-skewer-candidates nil))))
+        (setq js2ac-skewer-candidates nil))))
 
 ;; Auto-complete settings
 
@@ -136,6 +140,7 @@ request object in Javacript."
   "Main function called to gather candidates for Auto-complete."
   (let ((node (js2-node-parent (js2-node-at-point (1- (point)))))
         beg
+        (prop-get-regex "[a-zA-Z)]\\.")
         name)
     (setq js2ac-candidates nil)
     (cond
@@ -145,7 +150,8 @@ request object in Javacript."
         (setq beg (and (skip-chars-backward "[a-zA-Z_$][0-9a-zA-Z_$#\"())]+\\.") (point))))
       (setq name (buffer-substring-no-properties beg (1- (point))))
       (js2ac-get-object-properties name)
-      (setq node (js2ac-initialized-node (if (string-match "\\." name) (reverse (split-string name "\\.")) name)))
+      (setq node (js2ac-initialized-node (if (string-match prop-get-regex name)
+                                                 (reverse (split-string name prop-get-regex)) name)))
       (if (js2-object-node-p node)
           (setq js2ac-candidates
                 (mapcar (lambda (elem)
@@ -175,27 +181,15 @@ otherwise check skewer documentation."
 (defun js2ac-ac-prefix()
   (or (ac-prefix-default) (ac-prefix-c-dot)))
 
-(defun js2ac-mode-sources ()
-  "Set up the auto-completion sources for Js2-mode.
-Loads external libraries if required."
-  (when (not skewer-clients)
-    ;; TODO come up with a better way than opening more browser tabs
-    (run-skewer)
-    (mapcar (lambda (library)
-              (with-temp-buffer
-                (insert-file-contents library)
-                (js2ac-skewer-load-buffer))) js2ac-external-javscript-libraries))
-  (js2ac-skewer-load-buffer)
-  (setq ac-sources '(ac-source-js2)))
-
-(add-hook 'js2-mode-hook 'js2ac-mode-sources)
-
 (defun js2ac-skewer-load-buffer ()
   "Hook called before saving to evaluate current buffer."
-  (and (string= major-mode "js2-mode")
-       js2ac-evaluate-calls
-       (js2ac-skewer-eval-wrapper (buffer-substring-no-properties (point-min) (point-max)))))
+  (when (string= major-mode "js2-mode")
+      (unless (equal ac-sources '(ac-source-js2))
+          (setq ac-sources '(ac-source-js2)))
+      (and js2ac-evaluate-calls (js2ac-skewer-eval-wrapper (buffer-substring-no-properties (point-min) (point-max)))))
+  t)
 
+(add-hook 'js2-mode-hook 'js2ac-skewer-load-buffer)
 (add-hook 'before-save-hook 'js2ac-skewer-load-buffer)
 
 (ac-define-source "js2"
@@ -243,11 +237,11 @@ points can be found for each property in the chain."
          (unless endp
            (if (js2-name-node-p node)
                (push (js2-name-node-name node) names)
-             t))))
+               t))))
       names)))
 
 (defun js2ac-has-funtion-calls (string)
-  "Check if the Javascript code in STRING has a Js2-call-node."
+    "Check if the Javascript code in STRING has a Js2-call-node."
   (with-temp-buffer
     (insert string)
     (let* ((ast (js2-parse)))
@@ -424,7 +418,7 @@ Currently only the form 'foo.bar = 3' is supported opposed to
     nil))
 
 (defun js2ac-jump-to-definition ()
-  "Jump to the definition of an object's property, variable or function.
+    "Jump to the definition of an object's property, variable or function.
 Navigation to a property definend in an Object literal isn't
 implemented."
   (interactive)
