@@ -22,8 +22,42 @@
 
 ;;; Commentary:
 ;;
-;; An attempt to get context sensitive completion in Emacs.
+;; An attempt to get context sensitive Javascript completion in Emacs.
+;; Basic completions are obtained by parsing Javascript code with
+;; Js2-mode's parser and sending "safe" code, anything deemed to not
+;; have side effects, to the browser for evaluation. A browser needs
+;; to be connected to Emacs for the evaluation completions to work. To
+;; connect a browser to Emacs call `(run-skewer)'.
 ;;
+;; For more comprehensive completions you can enable evaluation of
+;; function calls by putting the following in your init file.
+;;
+;; `(setq js2ac-evaluate-calls t)'
+;;
+;; If completions from the browser don't work immediately save the
+;; buffer and try again. The buffer needs to be sent to the browser
+;; before properties of objects defined in that buffer can be completed.
+;;
+;; To add completions for external libraries add something like this:
+;;
+;; (add-to-list 'js2ac-external-libraries "path/to/lib/library.js")
+;;
+;; Note: library completions will only work if `js2ac-evaluate-calls'
+;; is set and a browser is connected to Emacs.
+;;
+;; Bonus: M-. is bound to `js2ac-jump-to-definition' in Js2-mode
+;; buffers to jump to Javascript definitions found in the same buffer.
+;; Given the following proprety reference:
+;;
+;; foo.bar.baz();
+;;
+;; placing the cursor on `foo', `bar' or `baz' and executing M-.
+;; will take you straight to their respective definitions.
+;;
+;; If you have any issues or suggestions please create an issue on Github:
+;; https://github.com/ScottyB/ac-js2
+;;
+;; I am keen to make this as useful as possible to Javascript developers.
 
 ;;; Code:
 
