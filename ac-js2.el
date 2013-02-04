@@ -77,8 +77,7 @@ Only keys of the object are returned as the other properties come
 (defvar skewer-hide-comments nil)
 
 (defvar js2ac-data-root (file-name-directory load-file-name)
-    "Location of data files needed for js2ac-on-skewer-load")
-
+    "Location of data files needed for `js2ac-on-skewer-load'.")
 
 ;;; Skewer integration
 
@@ -184,20 +183,21 @@ otherwise check skewer documentation."
 (defun js2ac-ac-prefix()
   (or (ac-prefix-default) (ac-prefix-c-dot)))
 
-(defun js2ac-skewer-load-buffer ()
-  "Setup the buffer for completions.
-Setup before-save-hook, ac-sources variable and evaluate buffer
-if js2ac-evaluate-calls is true."
+;;;###autoload
+(defun js2ac-setup-completion ()
+    "Called by `js2-mode-hook' to setup buffer for completion.
+Setup `before-save-hook', set `ac-sources' variable and evaluate buffer
+if `js2ac-evaluate-calls' is true."
   (when (string= major-mode "js2-mode")
-    (if (not (member 'js2ac-skewer-load-buffer 'before-save-hook))
-        (add-hook 'before-save-hook 'js2ac-skewer-load-buffer nil t))
+    (if (not (member 'js2ac-setup-completion 'before-save-hook))
+            (add-hook 'before-save-hook 'js2ac-setup-completion))
     (unless (member 'ac-source-js2 'ac-sources)
-      (add-to-list 'ac-sources 'ac-source-js2))
+        (add-to-list 'ac-sources 'ac-source-js2))
     (and js2ac-evaluate-calls (js2ac-skewer-eval-wrapper (buffer-substring-no-properties (point-min) (point-max)))))
   t)
 
 ;;;###autoload
-(add-hook 'js2-mode-hook 'js2ac-skewer-load-buffer)
+(add-hook 'js2-mode-hook 'js2ac-setup-completion)
 
 (ac-define-source "js2"
   '((candidates . js2ac-ac-candidates)
@@ -283,7 +283,6 @@ points can be found for each property in the chain."
     (if (js2-ast-root-p node)
         node
       (js2-node-get-enclosing-scope node))))
-
 
 (defun js2ac-get-names-in-scope ()
   "Fetches all symbols in scope and formats them for completion."
