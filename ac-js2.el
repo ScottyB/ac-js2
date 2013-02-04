@@ -3,7 +3,10 @@
 ;; Copyright (C) 2013  Scott Barnett
 
 ;; Author: Scott Barnett <scott.n.barnett@gmail.com>
-;; Keywords: convenience, languages
+;; URL: https://github.com/ScottyB/ac-js2
+;; Version: 1.0
+;; Package-Requires: ((js2-mode "20090723") (auto-complete "1.4") (skewer-mode "1.3"))
+
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -28,7 +31,6 @@
 (require 'js2-mode)
 (require 'auto-complete)
 (require 'skewer-mode)
-(require 'json)
 (require 'cl)
 
 (defgroup ac-js2 nil
@@ -95,6 +97,7 @@ Only keys of the object are returned as the other properties come
                                #'js2ac-skewer-result-callback
                                :type "complete"))) js2ac-external-libraries)))
 
+;;;###autoload
 (add-hook 'skewer-js-hook 'js2ac-on-skewer-load)
 
 (defun js2ac-skewer-completion-candidates ()
@@ -110,20 +113,20 @@ Only keys of the object are returned as the other properties come
   "Find properties of NAME for completion."
   (js2ac-skewer-eval-wrapper name `((prototypes . ,js2ac-add-prototype-completions))))
 
-(defun js2ac-skewer-eval-wrapper (name &optional extras)
+(defun js2ac-skewer-eval-wrapper (str &optional extras)
     "Wrap `skewer-eval' to check if a skewer-client is avilable.
-NAME is the text to send to the browser for evaluation. Extra
+STR is the text to send to the browser for evaluation. Extra
 parameters can be passed to the browser using EXTRAS. EXTRAS must
 be of the form (param-string . value) where param-string is the
 reference and value is the value that can be retrieved from the
 request object in Javacript."
   (if skewer-clients
-      (progn
-        (if (or js2ac-evaluate-calls
-                (not (js2ac-has-funtion-calls name)))
-            (skewer-eval name #'js2ac-skewer-result-callback
-                         :type "complete"
-                         :extra extras)))
+      (if (or js2ac-evaluate-calls
+            (not (js2ac-has-funtion-calls str)))
+        (skewer-eval str #'js2ac-skewer-result-callback
+                     :type "complete"
+                     :extra extras)
+        (setq js2ac-skewer-candidates nil))
       (setq skewer-queue nil)
       (setq js2ac-skewer-candidates nil)))
 
@@ -182,15 +185,19 @@ otherwise check skewer documentation."
   (or (ac-prefix-default) (ac-prefix-c-dot)))
 
 (defun js2ac-skewer-load-buffer ()
-  "Hook called before saving to evaluate current buffer."
+  "Setup the buffer for completions.
+Setup before-save-hook, ac-sources variable and evaluate buffer
+if js2ac-evaluate-calls is true."
   (when (string= major-mode "js2-mode")
-      (unless (equal ac-sources '(ac-source-js2))
-          (setq ac-sources '(ac-source-js2)))
-      (and js2ac-evaluate-calls (js2ac-skewer-eval-wrapper (buffer-substring-no-properties (point-min) (point-max)))))
+    (if (not (member 'js2ac-skewer-load-buffer 'before-save-hook))
+        (add-hook 'before-save-hook 'js2ac-skewer-load-buffer nil t))
+    (unless (member 'ac-source-js2 'ac-sources)
+      (add-to-list 'ac-sources 'ac-source-js2))
+    (and js2ac-evaluate-calls (js2ac-skewer-eval-wrapper (buffer-substring-no-properties (point-min) (point-max)))))
   t)
 
+;;;###autoload
 (add-hook 'js2-mode-hook 'js2ac-skewer-load-buffer)
-(add-hook 'before-save-hook 'js2ac-skewer-load-buffer)
 
 (ac-define-source "js2"
   '((candidates . js2ac-ac-candidates)
@@ -417,6 +424,7 @@ Currently only the form 'foo.bar = 3' is supported opposed to
        t))
     nil))
 
+;;;###autoload
 (defun js2ac-jump-to-definition ()
     "Jump to the definition of an object's property, variable or function.
 Navigation to a property definend in an Object literal isn't
