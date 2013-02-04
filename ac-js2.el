@@ -7,7 +7,6 @@
 ;; Version: 1.0
 ;; Package-Requires: ((js2-mode "20090723") (auto-complete "1.4") (skewer-mode "1.3"))
 
-
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
@@ -268,15 +267,6 @@ points can be found for each property in the chain."
           (if js2ac-add-ecma-262-externs js2-ecma-262-externs)
           (if js2ac-add-browser-externs js2-browser-externs)))
 
-(defun js2ac-format-comment (comment)
-  "Prepare a COMMENT node for displaying in a popup."
-  (let* ((node-string (if (js2-comment-node-p comment)
-                          (js2-node-string comment)
-                        comment))
-         (string (replace-regexp-in-string "[ \t]$" ""
-                                           (replace-regexp-in-string "^[ \t\n*/*]+" "" node-string))))
-    string))
-
 (defun js2ac-root-or-node ()
   "Return the current node or js2-ast-root node."
   (let ((node (js2-node-at-point)))
@@ -392,6 +382,15 @@ FUNC can be either a function node or a string starting with
   (let ((str (or (and (js2-function-node-p func) (js2-node-string func))
                  (and (stringp func) (eq 0 (string-match "function" func)) func))))
     (if str (substring str 0 (1+ (string-match ")" str))))))
+
+(defun js2ac-format-comment (comment)
+    "Prepare a COMMENT node for displaying in a popup."
+    (let* ((node-string (if (js2-comment-node-p comment)
+                                (js2-node-string comment)
+                            comment))
+           (string (replace-regexp-in-string "[ \t]$" ""
+                                             (replace-regexp-in-string "^[ \t\n*/*]+" "" node-string))))
+        string))
 
 ;;; Navigation commands for js2-mode
 
