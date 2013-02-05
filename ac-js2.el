@@ -21,7 +21,7 @@
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ;;; Commentary:
-;;
+
 ;; An attempt to get context sensitive Javascript completion in Emacs.
 ;; Basic completions are obtained by parsing Javascript code with
 ;; Js2-mode's parser and sending "safe" code, anything deemed to not
@@ -110,7 +110,7 @@ Only keys of the object are returned as the other properties come
 (defvar skewer-hide-comments nil)
 
 (defvar js2ac-data-root (file-name-directory load-file-name)
-    "Location of data files needed for `js2ac-on-skewer-load'.")
+  "Location of data files needed for `js2ac-on-skewer-load'.")
 
 ;;; Skewer integration
 
@@ -223,7 +223,7 @@ Setup `before-save-hook', set `ac-sources' variable and evaluate buffer
 if `js2ac-evaluate-calls' is true."
   (when (string= major-mode "js2-mode")
     (if (not (member 'js2ac-setup-completion 'before-save-hook))
-            (add-hook 'before-save-hook 'js2ac-setup-completion))
+            (add-hook 'before-save-hook 'js2ac-setup-completion nil t))
     (unless (member 'ac-source-js2 'ac-sources)
         (add-to-list 'ac-sources 'ac-source-js2))
     (and js2ac-evaluate-calls (js2ac-skewer-eval-wrapper (buffer-substring-no-properties (point-min) (point-max)))))
