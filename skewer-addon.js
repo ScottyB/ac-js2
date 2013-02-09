@@ -25,6 +25,16 @@ skewer.fn.complete = function(request) {
             GLOBAL : 1
         },
 
+        /**
+         * Add the properties from object to extendObject. Properties
+         * may be from the prototype but we still want to add them.
+         */
+        extend = function(extendObject, object) {
+            for(var key in object) {
+                extendObject[key] = object[key];
+            }
+        },
+
         globalCompletion = function() {
             var global = Function('return this')(),
                 keys = Object.keys(global);
@@ -36,17 +46,17 @@ skewer.fn.complete = function(request) {
             if (typeof obj === "object") {
                 candidates = buildCandidates(obj) || {};
                 while (request.prototypes && (obj = Object.getPrototypeOf(obj)) !== null) {
-                    jQuery.extend(candidates, buildCandidates(obj));
+                    extend(candidates, buildCandidates(obj));
                 }
             } else if (typeof obj === "function"){
                 candidates = buildCandidates(obj) || {};
-                jQuery.extend(candidates, buildCandidates(Object.getPrototypeOf(obj)));
+                extend(candidates, buildCandidates(Object.getPrototypeOf(obj)));
                 if (request.prototypes) {
                     var protoObject = Object.getPrototypeOf(obj.prototype);
                     if (protoObject !== null) {
-                        jQuery.extend(candidates, buildCandidates(protoObject));
+                        extend(candidates, buildCandidates(protoObject));
                     } else {
-                        jQuery.extend(candidates, buildCandidates(obj.prototype));
+                        extend(candidates, buildCandidates(obj.prototype));
                     }
                 }
             }
