@@ -86,7 +86,7 @@
   "When non-nil traverse the prototype chain adding to completion candidates.")
 
 (defcustom js2ac-external-libraries '()
-    "List of absolute paths to external Javascript libraries.")
+  "List of absolute paths to external Javascript libraries.")
 
 (defcustom js2ac-evaluate-calls nil
   "Warning. When true function calls will be evaluated in the browser.
@@ -122,12 +122,12 @@ Only keys of the object are returned as the other properties come
   (insert-file-contents (expand-file-name "skewer-addon.js" js2ac-data-root))
   (and js2ac-evaluate-calls
        (mapcar (lambda (library)
-              (with-temp-buffer
-                  (insert-file-contents (expand-file-name library))
-                  (js2-mode)
-                  (skewer-eval (buffer-substring-no-properties (point-min) (point-max))
-                               #'js2ac-skewer-result-callback
-                               :type "complete"))) js2ac-external-libraries)))
+                 (with-temp-buffer
+                   (insert-file-contents (expand-file-name library))
+                   (js2-mode)
+                   (skewer-eval (buffer-substring-no-properties (point-min) (point-max))
+                                #'js2ac-skewer-result-callback
+                                :type "complete"))) js2ac-external-libraries)))
 
 ;;;###autoload
 (add-hook 'skewer-js-hook 'js2ac-on-skewer-load)
@@ -146,7 +146,7 @@ Only keys of the object are returned as the other properties come
   (js2ac-skewer-eval-wrapper name `((prototypes . ,js2ac-add-prototype-completions))))
 
 (defun js2ac-skewer-eval-wrapper (str &optional extras)
-    "Wrap `skewer-eval' to check if a skewer-client is avilable.
+  "Wrap `skewer-eval' to check if a skewer-client is avilable.
 STR is the text to send to the browser for evaluation. Extra
 parameters can be passed to the browser using EXTRAS. EXTRAS must
 be of the form (param-string . value) where param-string is the
@@ -154,20 +154,20 @@ reference and value is the value that can be retrieved from the
 request object in Javacript."
   (if skewer-clients
       (if (or js2ac-evaluate-calls
-            (not (js2ac-has-funtion-calls str)))
-        (skewer-eval str #'js2ac-skewer-result-callback
-                     :type "complete"
-                     :extra extras)
+              (not (js2ac-has-funtion-calls str)))
+          (skewer-eval str #'js2ac-skewer-result-callback
+                       :type "complete"
+                       :extra extras)
         (setq js2ac-skewer-candidates nil))
-      (setq skewer-queue nil)
-      (setq js2ac-skewer-candidates nil)))
+    (setq skewer-queue nil)
+    (setq js2ac-skewer-candidates nil)))
 
 (defun js2ac-skewer-result-callback (result)
   "Callback with RESULT passed from the browser."
   (let ((value (cdr (assoc 'value result))))
     (if (and (skewer-success-p result) value)
         (setq js2ac-skewer-candidates (append value nil))
-        (setq js2ac-skewer-candidates nil))))
+      (setq js2ac-skewer-candidates nil))))
 
 ;; Auto-complete settings
 
@@ -186,7 +186,7 @@ request object in Javacript."
       (setq name (buffer-substring-no-properties beg (1- (point))))
       (js2ac-get-object-properties name)
       (setq node (js2ac-initialized-node (if (string-match prop-get-regex name)
-                                                 (reverse (split-string name prop-get-regex)) name)))
+                                             (reverse (split-string name prop-get-regex)) name)))
       (if (js2-object-node-p node)
           (setq js2ac-candidates
                 (mapcar (lambda (elem)
@@ -218,14 +218,15 @@ otherwise check skewer documentation."
 
 ;;;###autoload
 (defun js2ac-setup-completion ()
-    "Called by `js2-mode-hook' to setup buffer for completion.
+  "Called by `js2-mode-hook' to setup buffer for completion.
 Setup `before-save-hook', set `ac-sources' variable and evaluate buffer
 if `js2ac-evaluate-calls' is true."
+  (interactive)
   (when (string= major-mode "js2-mode")
     (if (not (member 'js2ac-setup-completion 'before-save-hook))
-            (add-hook 'before-save-hook 'js2ac-setup-completion nil t))
+        (add-hook 'before-save-hook 'js2ac-setup-completion nil t))
     (unless (member 'ac-source-js2 'ac-sources)
-        (add-to-list 'ac-sources 'ac-source-js2))
+      (add-to-list 'ac-sources 'ac-source-js2))
     (and js2ac-evaluate-calls (js2ac-skewer-eval-wrapper (buffer-substring-no-properties (point-min) (point-max)))))
   t)
 
@@ -277,11 +278,11 @@ points can be found for each property in the chain."
          (unless endp
            (if (js2-name-node-p node)
                (push (js2-name-node-name node) names)
-               t))))
+             t))))
       names)))
 
 (defun js2ac-has-funtion-calls (string)
-    "Check if the Javascript code in STRING has a Js2-call-node."
+  "Check if the Javascript code in STRING has a Js2-call-node."
   (with-temp-buffer
     (insert string)
     (let* ((ast (js2-parse)))
@@ -418,13 +419,13 @@ FUNC can be either a function node or a string starting with
     (if str (substring str 0 (1+ (string-match ")" str))))))
 
 (defun js2ac-format-comment (comment)
-    "Prepare a COMMENT node for displaying in a popup."
-    (let* ((node-string (if (js2-comment-node-p comment)
-                                (js2-node-string comment)
-                            comment))
-           (string (replace-regexp-in-string "[ \t]$" ""
-                                             (replace-regexp-in-string "^[ \t\n*/*]+" "" node-string))))
-        string))
+  "Prepare a COMMENT node for displaying in a popup."
+  (let* ((node-string (if (js2-comment-node-p comment)
+                          (js2-node-string comment)
+                        comment))
+         (string (replace-regexp-in-string "[ \t]$" ""
+                                           (replace-regexp-in-string "^[ \t\n*/*]+" "" node-string))))
+    string))
 
 ;;; Navigation commands for js2-mode
 
@@ -458,7 +459,7 @@ Currently only the form 'foo.bar = 3' is supported opposed to
 
 ;;;###autoload
 (defun js2ac-jump-to-definition ()
-    "Jump to the definition of an object's property, variable or function.
+  "Jump to the definition of an object's property, variable or function.
 Navigation to a property definend in an Object literal isn't
 implemented."
   (interactive)
