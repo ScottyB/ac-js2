@@ -377,7 +377,7 @@ element is the text to show as documentation."
     (setq elems (js2-object-node-elems obj-node))
     (if (not elems)
         "{}"
-      (mapconcat '(lambda (x) (ac-js2-format-js2-object-prop-doc x)) elems "\n"))))
+      (mapconcat #'(lambda (x) (ac-js2-format-js2-object-prop-doc x)) elems "\n"))))
 
 (defun ac-js2-format-node-doc (node)
   "Format NODE for displaying in a document string."
