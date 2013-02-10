@@ -117,7 +117,7 @@ Only keys of the object are returned as the other properties come
 
 (defun ac-js2-on-skewer-load ()
   "Inject skewer addon and evalute external libraries in browser."
-  (insert-file-contents (expand-file-name "skewer-addon.js"))
+  (insert-file-contents (expand-file-name "skewer-addon.js" ac-js2-data-root))
   (and ac-js2-evaluate-calls
        (mapcar (lambda (library)
                  (with-temp-buffer

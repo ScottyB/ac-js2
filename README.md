@@ -37,7 +37,7 @@ foo.bar.baz();
 ```
 
 placing the cursor on `foo`, `bar` or `baz` and executing
-`js2ac-jump-to-definition` or `M-.` will take you straight to their respective
+`ac-js2-jump-to-definition` or `M-.` will take you straight to their respective
 definitions.
 
  * Completion of variable and function names in current scope
@@ -83,18 +83,18 @@ for candidates. Not setting this value will still provide you with basic complet
 Something that I hope to improve in the future.
 
 ```
-(setq js2ac-evaluate-calls t)
+(setq ac-js2-evaluate-calls t)
 ```
 
 Add any external Javascript files to the variable below. Make sure you
-have initialised `js2ac-evaluate-calls` to t if you add any libraries.
+have initialised `ac-js2-evaluate-calls` to t if you add any libraries.
 
 ```
-(add-to-list 'js2ac-external-libraries `("full/path/to/a-library.js"))
+(add-to-list 'ac-js2-external-libraries "full/path/to/a-library.js")
 ```
 
 ## Usage
 
 Call `run-skewer` and open up a Javascript file. If
-`js2ac-evaluate-calls` is t then make a minor change and save the file
+`ac-js2-evaluate-calls` is t then make a minor change and save the file
 to get completions for objects in buffer.
