@@ -24,19 +24,19 @@
 
 ;; An attempt to get context sensitive Javascript completion in Emacs.
 ;; Basic completions are obtained by parsing Javascript code with
-;; Js2-mode's parser and sending "safe" code, anything deemed to not
-;; have side effects, to the browser for evaluation. A browser needs
-;; to be connected to Emacs for the evaluation completions to work. To
+;; Js2-mode's parser. For more comprehensive completions you can opt
+;; to evaluate the code for candidates. A browser needs to be
+;; connected to Emacs for the evaluation completions to work. To
 ;; connect a browser to Emacs call `(run-skewer)'.
 ;;
-;; For more comprehensive completions you can enable evaluation of
-;; function calls by putting the following in your init file.
+;; Then put the following in your init.el.
 ;;
 ;; `(setq ac-js2-evaluate-calls t)'
 ;;
-;; If completions from the browser don't work immediately save the
-;; buffer and try again. The buffer needs to be sent to the browser
-;; before properties of objects defined in that buffer can be completed.
+;; If a Javascript file is already open when you activate evaluations
+;; reactivate `js2-mode' in that buffer. The buffer needs to be sent
+;; to the browser before properties of objects defined in that buffer
+;; can be completed.
 ;;
 ;; To add completions for external libraries add something like this:
 ;;
@@ -56,8 +56,6 @@
 ;;
 ;; If you have any issues or suggestions please create an issue on Github:
 ;; https://github.com/ScottyB/ac-js2
-;;
-;; I am keen to make this as useful as possible to Javascript developers.
 
 ;;; Code:
 
@@ -118,8 +116,8 @@ Only keys of the object are returned as the other properties come
   "Cadidates obtained from skewering.")
 
 (defun ac-js2-on-skewer-load ()
-  "Add skewer-addon.js to skewer for evaluation."
-  (insert-file-contents (expand-file-name "skewer-addon.js" ac-js2-data-root))
+  "Inject skewer addon and evalute external libraries in browser."
+  (insert-file-contents (expand-file-name "skewer-addon.js"))
   (and ac-js2-evaluate-calls
        (mapcar (lambda (library)
                  (with-temp-buffer
@@ -186,12 +184,12 @@ request object in Javacript."
       (setq name (buffer-substring-no-properties beg (1- (point))))
       (ac-js2-get-object-properties name)
       (setq node (ac-js2-initialized-node (if (string-match prop-get-regex name)
-                                             (reverse (split-string name prop-get-regex)) name)))
+                                              (reverse (split-string name prop-get-regex)) name)))
       (if (js2-object-node-p node)
           (setq ac-js2-candidates
                 (mapcar (lambda (elem)
                           (ac-js2-format-node (js2-node-string (js2-object-prop-node-left elem))
-                                             elem))
+                                              elem))
                         (js2-object-node-elems node))))
       (append (mapcar 'first ac-js2-candidates)
               (ac-js2-skewer-completion-candidates)))
@@ -208,7 +206,7 @@ request object in Javacript."
 
 (defun ac-js2-ac-document(name)
   "Show documentation for NAME from local buffer if present
-otherwise check skewer documentation."
+otherwise use documentation obtained from skewer."
   (let* ((docs (cdr (assoc name ac-js2-candidates)))
          (doc (if (listp docs) (first docs) docs)))
     (if doc doc (ac-js2-skewer-document-candidates name))))
@@ -320,10 +318,10 @@ points can be found for each property in the chain."
                                  collect item)))
       (setq scope (js2-scope-parent-scope scope)))
     (setq ac-js2-candidates
-          (mapcar (lambda (x)
-                    (let* ((name (symbol-name (car x)))
-                           (init (ac-js2-initialized-node name)))
-                      (ac-js2-format-node name init)))
+          (mapcar #'(lambda (x)
+                      (let* ((name (symbol-name (car x)))
+                             (init (ac-js2-initialized-node name)))
+                        (ac-js2-format-node name init)))
                   result))))
 
 (defun ac-js2-initialized-node (name)
