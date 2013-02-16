@@ -26,28 +26,23 @@
 ;; Basic completions are obtained by parsing Javascript code with
 ;; Js2-mode's parser. For more comprehensive completions you can opt
 ;; to evaluate the code for candidates. A browser needs to be
-;; connected to Emacs for the evaluation completions to work. To
-;; connect a browser to Emacs call `(run-skewer)'.
-;;
-;; Then put the following in your init.el.
+;; connected to Emacs for the evaluation completions to work. Put the
+;; following in your init.el file
 ;;
 ;; `(setq ac-js2-evaluate-calls t)'
 ;;
-;; If a Javascript file is already open when you activate evaluations
-;; reactivate `js2-mode' in that buffer. The buffer needs to be sent
-;; to the browser before properties of objects defined in that buffer
-;; can be completed.
-;;
-;; To add completions for external libraries add something like this:
+;; Then connect a browser to Emacs by calling `(run-skewer)'. You may
+;; need to save the buffer for completions to start. To add
+;; completions for external libraries add something like this:
 ;;
 ;; (add-to-list 'ac-js2-external-libraries "path/to/lib/library.js")
 ;;
 ;; Note: library completions will only work if `ac-js2-evaluate-calls'
 ;; is set and a browser is connected to Emacs.
 ;;
-;; Bonus: M-. is bound to `ac-js2-jump-to-definition' in Js2-mode
-;; buffers to jump to Javascript definitions found in the same buffer.
-;; Given the following proprety reference:
+;; Bonus: M-. is bound to `ac-js2-jump-to-definition' which will jump
+;; to Javascript definitions found in the same buffer. Given the
+;; following proprety reference:
 ;;
 ;; foo.bar.baz();
 ;;
@@ -126,9 +121,6 @@ Only keys of the object are returned as the other properties come
                    (skewer-eval (buffer-substring-no-properties (point-min) (point-max))
                                 #'ac-js2-skewer-result-callback
                                 :type "complete"))) ac-js2-external-libraries)))
-
-;;;###autoload
-(add-hook 'skewer-js-hook 'ac-js2-on-skewer-load)
 
 (defun ac-js2-skewer-completion-candidates ()
   "Return completions returned from skewer."
@@ -214,22 +206,12 @@ otherwise use documentation obtained from skewer."
 (defun ac-js2-ac-prefix()
   (or (ac-prefix-default) (ac-prefix-c-dot)))
 
-;;;###autoload
-(defun ac-js2-setup-completion ()
-  "Called by `js2-mode-hook' to setup buffer for completion.
-Setup `before-save-hook', set `ac-sources' variable and evaluate buffer
-if `ac-js2-evaluate-calls' is true."
+(defun ac-js2-save ()
+  "Called on `before-save-hook' to evaluate buffer."
   (interactive)
   (when (string= major-mode "js2-mode")
-    (if (not (member 'ac-js2-setup-completion 'before-save-hook))
-        (add-hook 'before-save-hook 'ac-js2-setup-completion nil t))
-    (unless (member 'ac-source-js2 'ac-sources)
-      (add-to-list 'ac-sources 'ac-source-js2))
-    (and ac-js2-evaluate-calls (ac-js2-skewer-eval-wrapper (buffer-substring-no-properties (point-min) (point-max)))))
+    (ac-js2-skewer-eval-wrapper (buffer-substring-no-properties (point-min) (point-max))))
   t)
-
-;;;###autoload
-(add-hook 'js2-mode-hook 'ac-js2-setup-completion)
 
 (ac-define-source "js2"
   '((candidates . ac-js2-ac-candidates)
@@ -487,7 +469,22 @@ the function."
             (if (js2-var-init-node-p parent)
                 (js2-name-node-name (js2-var-init-node-target parent)))))))
 
-(define-key js2-mode-map (kbd "M-.") 'ac-js2-jump-to-definition)
+;;; Minor mode
+
+;;;###autoload
+(define-minor-mode ac-js2-mode
+  "A minor mode that provides auto-completion and navigation for Js-mode."
+  :keymap (let ((map (make-sparse-keymap)))
+            (define-key map (kbd "M-.") 'ac-js2-jump-to-definition)
+            map)
+  (auto-complete-mode)
+  (add-to-list 'ac-sources 'ac-source-js2)
+  (ac-js2-skewer-eval-wrapper (buffer-substring-no-properties (point-min) (point-max)))
+  (add-hook 'before-save-hook 'ac-js2-save nil t)
+  (add-hook 'skewer-js-hook 'ac-js2-on-skewer-load))
+
+;;;###autoload
+(add-hook 'js2-mode-hook 'ac-js2-mode)
 
 (provide 'ac-js2)
 

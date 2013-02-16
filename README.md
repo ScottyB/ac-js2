@@ -63,24 +63,18 @@ to fetch skewer-mode from melpa.
  * [js2-mode](https://github.com/mooz/js2-mode) (ELPA)
  * [auto-complete](https://github.com/auto-complete/auto-complete) (ELPA)
 
-Make sure auto-complete-mode is enabled for all buffers with the following command.
-
-```
-(global-auto-complete-mode)
-```
+Auto-complete mode is now activated by ac-js2 minor mode.
 
 ## Setup
 
 Add the following to your init.el:
 
 ```
-(add-to-list 'load-path "/path/to/ac-js2")
-(require 'ac-js2)
+(load-file "/path/to/ac-js2")
 ```
 
 Copy the snippet below if you want to evaluate your Javascript code
 for candidates. Not setting this value will still provide you with basic completion.
-Something that I hope to improve in the future.
 
 ```
 (setq ac-js2-evaluate-calls t)
