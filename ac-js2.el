@@ -24,18 +24,22 @@
 
 ;; An attempt to get context sensitive Javascript completion in Emacs.
 ;; Basic completions are obtained by parsing Javascript code with
-;; Js2-mode's parser. For more comprehensive completions you can opt
-;; to evaluate the code for candidates. A browser needs to be
-;; connected to Emacs for the evaluation completions to work. Put the
-;; following in your init.el file
+;; Js2-mode's parser. Add the following to your init.el file.
+;;
+;; `(load-file "~/projects/js2-extras/ac-js2.el")'
+;;
+;; For more comprehensive completions you can opt to evaluate the code
+;; for candidates. A browser needs to be connected to Emacs for the
+;; evaluation completions to work. Put this in your init.el file.
 ;;
 ;; `(setq ac-js2-evaluate-calls t)'
 ;;
-;; Then connect a browser to Emacs by calling `(run-skewer)'. You may
-;; need to save the buffer for completions to start. To add
-;; completions for external libraries add something like this:
+;; To add completions for external libraries add something like this:
 ;;
 ;; (add-to-list 'ac-js2-external-libraries "path/to/lib/library.js")
+;;
+;; Then connect a browser to Emacs by calling `(run-skewer)'. You may
+;; need to save the buffer for completions to start.
 ;;
 ;; Note: library completions will only work if `ac-js2-evaluate-calls'
 ;; is set and a browser is connected to Emacs.
@@ -100,8 +104,6 @@ This may cause undesired side effects however it will
 Only keys of the object are returned as the other properties come
   from js2-mode's externs.")
 
-(defvar skewer-hide-comments nil)
-
 (defvar ac-js2-data-root (file-name-directory load-file-name)
   "Location of data files needed for `ac-js2-on-skewer-load'.")
 
@@ -123,7 +125,7 @@ Only keys of the object are returned as the other properties come
                                 :type "complete"))) ac-js2-external-libraries)))
 
 (defun ac-js2-skewer-completion-candidates ()
-  "Return completions returned from skewer."
+  "Get completions returned from skewer."
   (mapcar (lambda (candidate) (symbol-name (car candidate))) ac-js2-skewer-candidates))
 
 (defun ac-js2-skewer-document-candidates (name)
@@ -162,7 +164,7 @@ request object in Javacript."
 ;; Auto-complete settings
 
 (defun ac-js2-ac-candidates()
-  "Main function called to gather candidates for Auto-complete."
+  "Main function called to gather candidates for auto-completion."
   (let ((node (js2-node-parent (js2-node-at-point (1- (point)))))
         beg
         (prop-get-regex "[a-zA-Z)]\\.")
@@ -309,7 +311,8 @@ points can be found for each property in the chain."
 (defun ac-js2-initialized-node (name)
   "Return initial value assigned to NAME.
 NAME may be either a variable, a function or a variable that
-holds a function. Returns nil if no initial value can be found."
+holds a function. NAME may also be a list of names that make up a
+object property. Returns nil if no initial value can be found."
   (let* ((node (if (listp name) (ac-js2-find-property name)
                  (ac-js2-name-declaration name)))
          (parent (if node (js2-node-parent node)))
