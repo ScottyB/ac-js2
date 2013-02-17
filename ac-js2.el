@@ -50,8 +50,9 @@
 ;;
 ;; foo.bar.baz();
 ;;
-;; placing the cursor on `foo', `bar' or `baz' and executing M-.
-;; will take you straight to their respective definitions.
+;; placing the cursor on `foo', `bar' or `baz' and executing M-. will
+;; take you straight to their respective definitions. Use M-, to jump
+;; back to where you were.
 ;;
 ;; If you have any issues or suggestions please create an issue on Github:
 ;; https://github.com/ScottyB/ac-js2
@@ -62,6 +63,7 @@
 (require 'auto-complete)
 (require 'skewer-mode)
 (require 'cl)
+(require 'etags)
 
 (defgroup ac-js2 nil
   "Auto-completion for js2-mode."
@@ -446,6 +448,7 @@ Currently only the form 'foo.bar = 3' is supported opposed to
 Navigation to a property definend in an Object literal isn't
 implemented."
   (interactive)
+  (ring-insert find-tag-marker-ring (point-marker))
   (let* ((node (js2-node-at-point))
          (parent (js2-node-parent node))
          (prop-names (if (js2-prop-get-node-p parent)
@@ -458,8 +461,8 @@ implemented."
                         (ac-js2-find-property prop-names)
                       (ac-js2-name-declaration name))))
     (unless node-init
+      (pop-tag-mark)
       (error "No jump location found"))
-    (push-mark)
     (goto-char (js2-node-abs-pos node-init))))
 
 (defun ac-js2-get-function-name (fn-node)
@@ -479,6 +482,7 @@ the function."
   "A minor mode that provides auto-completion and navigation for Js-mode."
   :keymap (let ((map (make-sparse-keymap)))
             (define-key map (kbd "M-.") 'ac-js2-jump-to-definition)
+            (define-key map (kbd "M-,") 'pop-tag-mark)
             map)
   (auto-complete-mode)
   (add-to-list 'ac-sources 'ac-source-js2)
