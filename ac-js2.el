@@ -113,7 +113,7 @@ Only keys of the object are returned as the other properties come
   "Cadidates obtained from skewering.")
 
 (defun ac-js2-on-skewer-load ()
-  "Inject skewer addon and evalute external libraries in browser."
+  "Inject skewer addon and evaluate external libraries in browser."
   (insert-file-contents (expand-file-name "skewer-addon.js" ac-js2-data-root))
   (and ac-js2-evaluate-calls
        (mapcar (lambda (library)
@@ -146,7 +146,7 @@ reference and value is the value that can be retrieved from the
 request object in Javacript."
   (if skewer-clients
       (if (or ac-js2-evaluate-calls
-              (not (ac-js2-has-funtion-calls str)))
+              (not (ac-js2-has-function-calls str)))
           (skewer-eval str #'ac-js2-skewer-result-callback
                        :type "complete"
                        :extra extras)
@@ -263,7 +263,7 @@ points can be found for each property in the chain."
              t))))
       names)))
 
-(defun ac-js2-has-funtion-calls (string)
+(defun ac-js2-has-function-calls (string)
   "Check if the Javascript code in STRING has a Js2-call-node."
   (with-temp-buffer
     (insert string)
