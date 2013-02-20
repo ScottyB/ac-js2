@@ -24,9 +24,17 @@
 
 ;; An attempt to get context sensitive Javascript completion in Emacs.
 ;; Basic completions are obtained by parsing Javascript code with
-;; Js2-mode's parser. Add the following to your init.el file.
+;; Js2-mode's parser.
 ;;
-;; `(load-file "~/projects/js2-extras/ac-js2.el")'
+;; Installation
+;;
+;; Easiest way to get ac-js2 is to install it from MELPA. You may need
+;; this snippet
+;;
+;; `(add-to-list 'package-archives
+;;              '("melpa" . "http://melpa.milkbox.net/packages/") t)'
+;;
+;; if you don't have it already to fetch packages from MELPA.
 ;;
 ;; For more comprehensive completions you can opt to evaluate the code
 ;; for candidates. A browser needs to be connected to Emacs for the

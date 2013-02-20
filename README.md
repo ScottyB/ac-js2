@@ -38,7 +38,7 @@ foo.bar.baz();
 
 placing the cursor on `foo`, `bar` or `baz` and executing
 `ac-js2-jump-to-definition` or `M-.` will take you straight to their respective
-definitions.
+definitions. Executing `M-,` will jump you back to where you were.
 
  * Completion of variable and function names in current scope
  * Popup documentation for variables and function names in buffer
@@ -47,15 +47,14 @@ definitions.
 
 ## Installation
 
-Intergration with a package manager will be coming soon. For now clone
-this repository and fetch the dependencies using the built in package
-manager. You may need to add the following to your init.el to be able
-to fetch skewer-mode from melpa.
+Easiest way to get ac-js2 is to install it from MELPA. You may need this snippet
 
 ```
 (add-to-list 'package-archives
               '("melpa" . "http://melpa.milkbox.net/packages/") t)
 ```
+
+if you don't have it already to fetch packages from MELPA.
 
 ### Dependencies
 
@@ -63,15 +62,10 @@ to fetch skewer-mode from melpa.
  * [js2-mode](https://github.com/mooz/js2-mode) (ELPA)
  * [auto-complete](https://github.com/auto-complete/auto-complete) (ELPA)
 
-Auto-complete mode is now activated by ac-js2 minor mode.
+Auto-complete mode is now activated by ac-js2 minor mode. All
+dependencies will be installed by MELPA.
 
 ## Setup
-
-Add the following to your init.el:
-
-```
-(load-file "/path/to/ac-js2")
-```
 
 Copy the snippet below if you want to evaluate your Javascript code
 for candidates. Not setting this value will still provide you with basic completion.
@@ -84,11 +78,11 @@ Add any external Javascript files to the variable below. Make sure you
 have initialised `ac-js2-evaluate-calls` to t if you add any libraries.
 
 ```
-(add-to-list 'ac-js2-external-libraries "full/path/to/a-library.js")
+(setq ac-js2-external-libraries '("full/path/to/a-library.js"))
 ```
 
 ## Usage
 
-Call `run-skewer` and open up a Javascript file. If
-`ac-js2-evaluate-calls` is t then make a minor change and save the file
-to get completions for objects in buffer.
+Call `run-skewer` and open up a Javascript file. Note that any code
+you evaluate using Skewer may add completion candidates for the global
+object.
