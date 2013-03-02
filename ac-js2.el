@@ -1,4 +1,4 @@
-;;; ac-js2.el --- Autocomplete source for Js2-mode
+;;; ac-js2.el --- Auto-complete source for Js2-mode, with navigation
 
 ;; Copyright (C) 2013  Scott Barnett
 
@@ -130,7 +130,7 @@ Only keys of the object are returned as the other properties come
                  (with-temp-buffer
                    (insert-file-contents (expand-file-name library))
                    (js2-mode)
-                   (skewer-eval (buffer-substring-no-properties (point-min) (point-max))
+                   (skewer-eval (buffer-string)
                                 #'ac-js2-skewer-result-callback
                                 :type "complete"))) ac-js2-external-libraries)))
 
@@ -222,7 +222,7 @@ otherwise use documentation obtained from skewer."
   "Called on `before-save-hook' to evaluate buffer."
   (interactive)
   (when (string= major-mode "js2-mode")
-    (ac-js2-skewer-eval-wrapper (buffer-substring-no-properties (point-min) (point-max))))
+    (ac-js2-skewer-eval-wrapper (buffer-string)))
   t)
 
 (ac-define-source "js2"
@@ -494,7 +494,7 @@ the function."
             map)
   (auto-complete-mode)
   (add-to-list 'ac-sources 'ac-source-js2)
-  (ac-js2-skewer-eval-wrapper (buffer-substring-no-properties (point-min) (point-max)))
+  (ac-js2-skewer-eval-wrapper (buffer-string))
   (add-hook 'before-save-hook 'ac-js2-save nil t)
   (add-hook 'skewer-js-hook 'ac-js2-on-skewer-load))
 
