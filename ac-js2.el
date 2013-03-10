@@ -231,6 +231,16 @@ otherwise use documentation obtained from skewer."
     (prefix .  ac-js2-ac-prefix)
     (requires . -1)))
 
+;;; Completion at point function
+
+(defun ac-js2-completion-function ()
+  "Function for `completions-at-point'."
+  (save-excursion
+    (let ((bounds (if (looking-back "\\.")
+                      (cons (point) (point))
+                    (bounds-of-thing-at-point 'word))))
+      (list (car bounds) (cdr bounds) (ac-js2-ac-candidates)))))
+
 ;;; Helper functions
 
 (defun ac-js2-build-prop-name-list (prop-node)
@@ -494,6 +504,7 @@ the function."
             map)
   (auto-complete-mode)
   (add-to-list 'ac-sources 'ac-source-js2)
+  (add-to-list 'completion-at-point-functions 'ac-js2-completion-function)
   (ac-js2-skewer-eval-wrapper (buffer-string))
   (add-hook 'before-save-hook 'ac-js2-save nil t)
   (add-hook 'skewer-js-hook 'ac-js2-on-skewer-load))
