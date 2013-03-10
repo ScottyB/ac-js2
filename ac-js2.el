@@ -65,6 +65,14 @@
 ;; If you have any issues or suggestions please create an issue on Github:
 ;; https://github.com/ScottyB/ac-js2
 
+;;; History:
+
+;; Version 1.0
+;;   * Navigation within current buffer
+;;   * Completion and docstring for objects via Skewer
+;;   * External library support
+;;   * Basic completions of objects in current buffer
+
 ;;; Code:
 
 (require 'js2-mode)
