@@ -1,9 +1,12 @@
 ;;; Tests for ac-js2
 
 (require 'ert)
+(require 'skewer-mode)
 (require 'js2-mode)
+(require 'ac-js2)
 
 ;;; Must have a skewer client connected before running the tests
+;; Need to call httpd-stop from main Emacs if running tests in batch mode
 (unless skewer-clients
   (run-skewer))
 
