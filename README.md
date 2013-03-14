@@ -1,8 +1,8 @@
 # ac-js2
 
 An attempt at context sensitive auto-completion for Javascript in Emacs using
-Js2-mode's parser and Skewer-mode. Inspired by the work of others on
-projects such as Js2-mode, Skewer-mode and Js2-refactor I decided to
+js2-mode's parser and Skewer-mode. Inspired by the work of others on
+projects such as js2-mode, skewer-mode and js2-refactor I decided to
 add to the concept of Emacs as a Javascript IDE.
 
 Here is a screenshot of the auto completion in action using the
@@ -22,7 +22,7 @@ Each of the above settings can be customized and are enabled by default.
  * Show function interface or initial value for object properties
  * Support for external libraries
 
-Ac-js2 uses Skewer-mode to evaluate Javascript code in the browser
+Ac-js2 uses skewer-mode to evaluate Javascript code in the browser
 which could have undesired side effects. Therefore these features are
 turned off by default, see Setup to enable these features anyway :).
 
@@ -44,6 +44,7 @@ definitions. Executing `M-,` will jump you back to where you were.
  * Popup documentation for variables and function names in buffer
 
 **Experimental yansippet integration with auto-complete-mode**
+
 Sometimes you want to expand a function's definition on completion and
 other times you just want to complete the function's name. To achieve
 this `ac-js2-expand-function` has been added to `ac-completing-map`
@@ -51,8 +52,7 @@ bound to `C-e`.
 
 When auto-complete-mode shows a popup scroll to the completion you
 want and press `C-e` to expand it. Expansion will only work when
-Yasnippet is installed (no setup is required) and for functions, that
-is, the documentation string contains a line starting with "function".
+yasnippet is installed (no setup is required) and for functions.
 
 **Note:** Navigation only works if the definition is in the same file.
 
@@ -100,7 +100,7 @@ have initialised `ac-js2-evaluate-calls` to t if you add any libraries.
 ## Usage
 
 Call `run-skewer` and open up a Javascript file. Type part of a
-variable and call `completion-at-point` of if you have auto-complete
+variable and call `completion-at-point` or if you have auto-complete
 installed wait for the popup.
 
 Note that any code you evaluate using Skewer may add completion
