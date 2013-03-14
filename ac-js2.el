@@ -78,7 +78,7 @@
 (require 'js2-mode)
 (require 'auto-complete)
 (require 'skewer-mode)
-(require 'cl)
+(require 'cl-lib)
 (require 'etags)
 
 (defgroup ac-js2 nil
@@ -376,8 +376,8 @@ the node (shown in completion candidate list) and the last
 element is the text to show as documentation."
   (let ((node (if (js2-object-prop-node-p node) (js2-object-prop-node-right node) node))
         (doc (if (and (js2-function-node-p node)
-                      (find name (js2-function-node-params node)
-                            :test '(lambda (name param) (string= name (js2-name-node-name param)))))
+                      (cl-find name (js2-function-node-params node)
+                               :test '(lambda (name param) (string= name (js2-name-node-name param)))))
                  "Function parameter"
                (ac-js2-format-node-doc node))))
     `(,name . ,doc)))
