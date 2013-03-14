@@ -1,12 +1,12 @@
 # ac-js2
 
-
 An attempt at context sensitive auto-completion for Javascript in Emacs using
 Js2-mode's parser and Skewer-mode. Inspired by the work of others on
 projects such as Js2-mode, Skewer-mode and Js2-refactor I decided to
 add to the concept of Emacs as a Javascript IDE.
 
-Here is a screenshot of the auto completion in action.
+Here is a screenshot of the auto completion in action using the
+optional dependency, auto-complete-mode.
 
 ![Completion](https://raw.github.com/ScottyB/ac-js2/master/images/function-interface.png)
 
@@ -60,15 +60,20 @@ if you don't have it already to fetch packages from MELPA.
 
  * [skewer-mode](https://github.com/skeeto/skewer-mode) (MELPA)
  * [js2-mode](https://github.com/mooz/js2-mode) (ELPA)
+
+Auto-complete is no longer a dependency however ac-js2 will use it if
+you have it installed. The main reason for this is to allow users to
+use their preferred completion front end.
+
  * [auto-complete](https://github.com/auto-complete/auto-complete) (ELPA)
 
-Auto-complete mode is now activated by ac-js2 minor mode. All
-dependencies will be installed by MELPA.
+ For those of you who prefer Company mode, support is on its way.
 
 ## Setup
 
 Copy the snippet below if you want to evaluate your Javascript code
-for candidates. Not setting this value will still provide you with basic completion.
+for candidates. Not setting this value will still provide you with
+basic completion.
 
 ```
 (setq ac-js2-evaluate-calls t)
@@ -83,6 +88,9 @@ have initialised `ac-js2-evaluate-calls` to t if you add any libraries.
 
 ## Usage
 
-Call `run-skewer` and open up a Javascript file. Note that any code
-you evaluate using Skewer may add completion candidates for the global
-object.
+Call `run-skewer` and open up a Javascript file. Type part of a
+variable and call `completion-at-point` of if you have auto-complete
+installed wait for the popup.
+
+Note that any code you evaluate using Skewer may add completion
+candidates for the global object.

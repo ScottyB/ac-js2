@@ -5,7 +5,7 @@
 ;; Author: Scott Barnett <scott.n.barnett@gmail.com>
 ;; URL: https://github.com/ScottyB/ac-js2
 ;; Version: 1.0
-;; Package-Requires: ((js2-mode "20090723") (auto-complete "1.4") (skewer-mode "1.4"))
+;; Package-Requires: ((js2-mode "20090723")(skewer-mode "1.4"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -36,6 +36,10 @@
 ;;
 ;; if you don't have it already to fetch packages from MELPA.
 ;;
+;; Ac-js2 does not require auto-complete mode but I suggest you grab
+;; it anyway as ac-js2 is designed to work with a completion frontend.
+;; Support for Company mode is on its way.
+;;
 ;; For more comprehensive completions you can opt to evaluate the code
 ;; for candidates. A browser needs to be connected to Emacs for the
 ;; evaluation completions to work. Put this in your init.el file.
@@ -48,6 +52,9 @@
 ;;
 ;; Then connect a browser to Emacs by calling `(run-skewer)'. You may
 ;; need to save the buffer for completions to start.
+;;
+;; If auto-complete mode is installed on your system then completions
+;; should start showing up otherwise use `completion-at-point'.
 ;;
 ;; Note: library completions will only work if `ac-js2-evaluate-calls'
 ;; is set and a browser is connected to Emacs.
@@ -76,7 +83,6 @@
 ;;; Code:
 
 (require 'js2-mode)
-(require 'auto-complete)
 (require 'skewer-mode)
 (require 'cl-lib)
 (require 'etags)
@@ -179,9 +185,9 @@ request object in Javacript."
         (setq ac-js2-skewer-candidates (append value nil))
       (setq ac-js2-skewer-candidates nil))))
 
-;; Auto-complete settings
+;; Generate candidates
 
-(defun ac-js2-ac-candidates()
+(defun ac-js2-candidates ()
   "Main function called to gather candidates for auto-completion."
   (let ((node (js2-node-parent (js2-node-at-point (1- (point)))))
         beg
@@ -216,12 +222,22 @@ request object in Javacript."
               (ac-js2-add-extra-completions
                (mapcar 'first (ac-js2-get-names-in-scope))))))))
 
-(defun ac-js2-ac-document(name)
+(defun ac-js2-document (name)
   "Show documentation for NAME from local buffer if present
 otherwise use documentation obtained from skewer."
   (let* ((docs (cdr (assoc name ac-js2-candidates)))
          (doc (if (listp docs) (first docs) docs)))
     (if doc doc (ac-js2-skewer-document-candidates name))))
+
+;; Auto-complete settings
+
+(defun ac-js2-ac-candidates ()
+  "Completion candidates for auto-complete mode."
+  (ac-js2-candidates))
+
+(defun ac-js2-ac-document (name)
+  "Documentation to be shown for auto-complete mode."
+  (ac-js2-document name))
 
 (defun ac-js2-ac-prefix()
   (or (ac-prefix-default) (ac-prefix-c-dot)))
@@ -233,11 +249,15 @@ otherwise use documentation obtained from skewer."
     (ac-js2-skewer-eval-wrapper (buffer-string)))
   t)
 
-(ac-define-source "js2"
-  '((candidates . ac-js2-ac-candidates)
-    (document . ac-js2-ac-document)
-    (prefix .  ac-js2-ac-prefix)
-    (requires . -1)))
+(defun ac-js2-setup-auto-complete-mode ()
+  "Setup ac-js2 to be used with auto-complete-mode."
+  (add-to-list 'ac-sources 'ac-source-js2)
+  (auto-complete-mode)
+  (ac-define-source "js2"
+    '((candidates . ac-js2-ac-candidates)
+      (document . ac-js2-ac-document)
+      (prefix .  ac-js2-ac-prefix)
+      (requires . -1))))
 
 ;;; Completion at point function
 
@@ -510,8 +530,8 @@ the function."
             (define-key map (kbd "M-.") 'ac-js2-jump-to-definition)
             (define-key map (kbd "M-,") 'pop-tag-mark)
             map)
-  (auto-complete-mode)
-  (add-to-list 'ac-sources 'ac-source-js2)
+  (if (featurep 'auto-complete)
+      (ac-js2-setup-auto-complete-mode))
   (add-to-list 'completion-at-point-functions 'ac-js2-completion-function)
   (ac-js2-skewer-eval-wrapper (buffer-string))
   (add-hook 'before-save-hook 'ac-js2-save nil t)
