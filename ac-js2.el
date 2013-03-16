@@ -548,7 +548,7 @@ the function."
 
 ;;;###autoload
 (define-minor-mode ac-js2-mode
-  "A minor mode that provides auto-completion and navigation for Js-mode."
+  "A minor mode that provides auto-completion and navigation for Js2-mode."
   :keymap (let ((map (make-sparse-keymap)))
             (define-key map (kbd "M-.") 'ac-js2-jump-to-definition)
             (define-key map (kbd "M-,") 'pop-tag-mark)
