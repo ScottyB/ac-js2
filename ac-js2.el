@@ -295,20 +295,22 @@ string contain a function prototype."
 ;;;###autoload
 (defun ac-js2-company (command &optional arg &rest ignored)
   (interactive (list 'interactive))
-  (case command
-    (interactive (company-begin-backend 'ac-js2-company))
-    (prefix (when ac-js2-mode
-              (or (company-grab-symbol)
-                  'stop)))
-    (candidates (all-completions arg (ac-js2-candidates)))
-    (duplicates t)
-    (meta (let ((doc (ac-js2-document arg)))
-            (when doc
-              (with-temp-buffer
-                (insert doc)
-                (js-mode)
-                (font-lock-fontify-buffer)
-                (buffer-string)))))))
+  (if (not (featurep 'company))
+      (message "Company is not installed")
+    (case command
+      (interactive (company-begin-backend 'ac-js2-company))
+      (prefix (when ac-js2-mode
+                (or (company-grab-symbol)
+                    'stop)))
+      (candidates (all-completions arg (ac-js2-candidates)))
+      (duplicates t)
+      (meta (let ((doc (ac-js2-document arg)))
+              (when doc
+                (with-temp-buffer
+                  (insert doc)
+                  (js-mode)
+                  (font-lock-fontify-buffer)
+                  (buffer-string))))))))
 
 ;;; Helper functions
 
