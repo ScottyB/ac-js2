@@ -10,34 +10,14 @@
 (unless skewer-clients
   (run-skewer))
 
-(defun ac-js2-flush-buffer-response (completion-func)
-  "Need to call COMPLETION-FUNC after sending a request to the
-browser as the buffer contents get sent first and then the
-request for candidates."
-  (let ((timer 0)
-        (wait '(lambda () (while (and (< timer 10)
-                                 (not ac-js2-skewer-candidates))
-                       (sit-for 0.5)
-                       (incf timer)))))
-    (setq ac-js2-skewer-candidates nil)
-    (funcall wait)
-    (setq timer 0)
-    (setq ac-js2-skewer-candidates nil)
-    (funcall completion-func)
-    (funcall wait)))
-
-(defmacro ac-js2-test-completion (test-function primary-activation secondary-activation)
-  "Macro to help test the various completion frontends.
-TEST-FUNCTION is the function to test, PRIMARY-ACTIVATION is the
-method to activate automatic completion and SECONDARY-ACTIVATION
-is a list or a function that returns a list of candidates."
-  `(ert-deftest ,test-function ()
-     (let (property
-           property-dot
-           func-call
-           var)
-       (with-temp-buffer
-         (insert "
+(ert-deftest ac-js2-candidates-test ()
+  "Test the major function that returns candidates for all frontends."
+  (let (property
+        property-dot
+        func-call
+        var)
+    (with-temp-buffer
+      (insert "
   var temp = function(param1, param2) {
     var localParam = 15;
     return param1 + param2;
@@ -47,35 +27,48 @@ is a list or a function that returns a list of candidates."
 
 temp.aFun = function(lolParam) {};
 temp.anotherFunction = function() { return {about: 3};}")
-         (setq ac-js2-evaluate-calls t)
-         (setq ac-js2-external-libraries nil)
+      (setq ac-js2-evaluate-calls t)
+      (setq ac-js2-external-libraries nil)
+
+      (js2-mode)
+      (js2-parse)
+
+      (insert "tem")
+      (ac-js2-candidates)
+      (setq var ac-js2-skewer-candidates)
+      (delete-char -3)
+
+      (insert "temp.")
+      (js2-parse)
+      (ac-js2-candidates)
+      (setq property-dot ac-js2-skewer-candidates)
+      (delete-char -5)
+
+      (insert "temp.aF")
+      (js2-parse)
+      (ac-js2-candidates)
+      (setq property ac-js2-skewer-candidates))
+
+    (should (assoc 'anotherFunction property-dot))
+    (print property)
+    (should (assoc 'aFun property))
+    (should (assoc 'temp var))))
+
+(defmacro completion-frontend-test (test-name completion-function)
+  "Utility for testing completion front ends.
+TODO: cover more cases"
+  `(ert-deftest ,test-name ()
+     (let (var)
+       (with-temp-buffer
+         (insert "var testComplete = function(param1, param2) {};")
 
          (js2-mode)
          (js2-parse)
 
-         (insert "tem")
-         (funcall ',primary-activation)
-         (setq var (thing-at-point 'word))
+         (insert "testComplet")
+         (funcall ',completion-function)
+         (setq var (thing-at-point 'word)))
+       (should (string= var "testComplete")))))
 
-         (insert ".")
-         (funcall ',secondary-activation)
-         (ac-js2-flush-buffer-response ',secondary-activation)
-         (setq property-dot ac-js2-skewer-candidates)
-
-         (insert "aF")
-         (funcall ',primary-activation)
-         (setq property (thing-at-point 'word))
-
-         (backward-kill-word 1)
-         (insert "anotherFunction().")
-         (funcall ',secondary-activation)
-         (ac-js2-flush-buffer-response ',secondary-activation)
-         (setq func-call ac-js2-skewer-candidates))
-
-       (should (string= var "temp"))
-       (should (string= "aFun" property))
-       (should (and (assoc 'aFun property-dot) (assoc 'name property-dot)))
-       (should (assoc 'about func-call)))))
-
-(ac-js2-test-completion ac-js2-candidates auto-complete ac-js2-ac-candidates)
-(ac-js2-test-completion ac-js2-completion-function completion-at-point completion-at-point)
+(completion-frontend-test auto-complete-test auto-complete)
+(completion-frontend-test completion-at-point-test completion-at-point)

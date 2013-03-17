@@ -148,9 +148,8 @@ Only keys of the object are returned as the other properties come
        (mapcar (lambda (library)
                  (with-temp-buffer
                    (insert-file-contents (expand-file-name library))
-                   (js2-mode)
                    (skewer-eval (buffer-string)
-                                #'ac-js2-skewer-result-callback
+                                nil
                                 :type "complete"))) ac-js2-external-libraries)))
 
 (defun ac-js2-skewer-completion-candidates ()
@@ -166,29 +165,28 @@ Only keys of the object are returned as the other properties come
   "Find properties of NAME for completion."
   (ac-js2-skewer-eval-wrapper name `((prototypes . ,ac-js2-add-prototype-completions))))
 
+(defun ac-js2-skewer-result-callback (result)
+  "Process the RESULT passed from the browser."
+  (let ((value (cdr (assoc 'value result))))
+    (if (and (skewer-success-p result) value)
+        (setq ac-js2-skewer-candidates (append value nil)))))
+
 (defun ac-js2-skewer-eval-wrapper (str &optional extras)
-  "Wrap `skewer-eval' to check if a skewer-client is avilable.
+  "Wrap `skewer-eval-synchronously' to check if a skewer-client is avilable.
 STR is the text to send to the browser for evaluation. Extra
 parameters can be passed to the browser using EXTRAS. EXTRAS must
 be of the form (param-string . value) where param-string is the
 reference and value is the value that can be retrieved from the
 request object in Javacript."
+  (setq ac-js2-skewer-candidates nil)
   (if skewer-clients
       (if (or ac-js2-evaluate-calls
               (not (ac-js2-has-function-calls str)))
-          (skewer-eval str #'ac-js2-skewer-result-callback
+          (ac-js2-skewer-result-callback
+           (skewer-eval-synchronously str
                        :type "complete"
-                       :extra extras)
-        (setq ac-js2-skewer-candidates nil))
-    (setq skewer-queue nil)
-    (setq ac-js2-skewer-candidates nil)))
-
-(defun ac-js2-skewer-result-callback (result)
-  "Callback with RESULT passed from the browser."
-  (let ((value (cdr (assoc 'value result))))
-    (if (and (skewer-success-p result) value)
-        (setq ac-js2-skewer-candidates (append value nil))
-      (setq ac-js2-skewer-candidates nil))))
+                       :extra extras)))
+    (setq skewer-queue nil)))
 
 ;; Generate candidates
 
