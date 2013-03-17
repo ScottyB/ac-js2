@@ -290,6 +290,26 @@ string contain a function prototype."
                     (bounds-of-thing-at-point 'word))))
       (list (car bounds) (cdr bounds) (ac-js2-ac-candidates)))))
 
+;;; Company
+
+;;;###autoload
+(defun ac-js2-company (command &optional arg &rest ignored)
+  (interactive (list 'interactive))
+  (case command
+    (interactive (company-begin-backend 'ac-js2-company))
+    (prefix (when ac-js2-mode
+              (or (company-grab-symbol)
+                  'stop)))
+    (candidates (all-completions arg (ac-js2-candidates)))
+    (duplicates t)
+    (meta (let ((doc (ac-js2-document arg)))
+            (when doc
+              (with-temp-buffer
+                (insert doc)
+                (js-mode)
+                (font-lock-fontify-buffer)
+                (buffer-string)))))))
+
 ;;; Helper functions
 
 (defun ac-js2-build-prop-name-list (prop-node)
