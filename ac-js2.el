@@ -192,6 +192,7 @@ request object in Javacript."
 
 (defun ac-js2-candidates ()
   "Main function called to gather candidates for auto-completion."
+  (js2-reparse) ;; Make sure the AST is up to date.
   (let ((node (js2-node-parent (js2-node-at-point (1- (point)))))
         beg
         (prop-get-regex "[a-zA-Z)]\\.")
