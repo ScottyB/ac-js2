@@ -282,13 +282,14 @@ string contain a function prototype."
 
 ;;; Completion at point function
 
+;;;###autoload
 (defun ac-js2-completion-function ()
   "Function for `completions-at-point'."
   (save-excursion
     (let ((bounds (if (looking-back "\\.")
                       (cons (point) (point))
                     (bounds-of-thing-at-point 'word))))
-      (list (car bounds) (cdr bounds) (ac-js2-ac-candidates)))))
+      (list (car bounds) (cdr bounds) (ac-js2-candidates)))))
 
 ;;; Company
 
