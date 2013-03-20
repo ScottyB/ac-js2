@@ -69,10 +69,9 @@
 ;; take you straight to their respective definitions. Use M-, to jump
 ;; back to where you were.
 ;;
-;; When auto-complete-mode and yasnippet are installed
-;; `ac-js2-expand-function' is available when a popup is showing.
-;; Bound to C-` it will expand the parameters of function instead of
-;; just completing function name.
+;; Recently added `ac-js2-expand-function' that will expand a function's
+;; parameters bound to `C-c C-c`. Expansion will only work if the cursor
+;; is after the function.
 ;;
 ;; If you have any issues or suggestions please create an issue on Github:
 ;; https://github.com/ScottyB/ac-js2
@@ -184,8 +183,8 @@ request object in Javacript."
               (not (ac-js2-has-function-calls str)))
           (ac-js2-skewer-result-callback
            (skewer-eval-synchronously str
-                       :type "complete"
-                       :extra extras)))
+                                      :type "complete"
+                                      :extra extras)))
     (setq skewer-queue nil)))
 
 ;; Generate candidates
@@ -253,22 +252,25 @@ otherwise use documentation obtained from skewer."
     (ac-js2-skewer-eval-wrapper (buffer-string)))
   t)
 
+;;;###autoload
 (defun ac-js2-expand-function()
-  "Expand the function definition of the last completion.
+  "Expand the function definition left of point.
 Expansion will only occur for candidates whose documentation
 string contain a function prototype."
   (interactive)
-  (when (equal major-mode 'js2-mode)
-    (ac-complete)
-    (let ((candidate (ac-js2-ac-document (cdr ac-last-completion))))
-      (when (string-match "^function" candidate)
-        (cond ((featurep 'yasnippet)
-               (yas-expand-snippet
-                (concat "("
-                        (replace-regexp-in-string "\\([a-zA-Z0-9]+\\)"
-                                                  (lambda (txt) (concat "${" txt "}"))
-                                                  (second (split-string candidate "[()]")))
-                        ")$0"))))))))
+  (let* ((word (progn
+                 (if (featurep 'auto-complete) (ac-complete))
+                 (substring-no-properties (or (thing-at-point 'word) ""))))
+         (candidate (ac-js2-ac-document word)))
+    (if (and (looking-back word) (stringp candidate))
+        (when (string-match "^function" candidate)
+          (cond ((featurep 'yasnippet)
+                 (yas-expand-snippet
+                  (concat "("
+                          (replace-regexp-in-string "\\([a-zA-Z0-9]+\\)"
+                                                    (lambda (txt) (concat "${" txt "}"))
+                                                    (second (split-string candidate "[()]")))
+                          ")$0"))))))))
 
 (defun ac-js2-setup-auto-complete-mode ()
   "Setup ac-js2 to be used with auto-complete-mode."
@@ -278,8 +280,7 @@ string contain a function prototype."
     '((candidates . ac-js2-ac-candidates)
       (document . ac-js2-ac-document)
       (prefix .  ac-js2-ac-prefix)
-      (requires . -1)))
-  (define-key ac-completing-map (kbd "C-e") 'ac-js2-expand-function))
+      (requires . -1))))
 
 ;;; Completion at point function
 
@@ -574,6 +575,7 @@ the function."
   :keymap (let ((map (make-sparse-keymap)))
             (define-key map (kbd "M-.") 'ac-js2-jump-to-definition)
             (define-key map (kbd "M-,") 'pop-tag-mark)
+            (define-key map (kbd "C-c C-c") 'ac-js2-expand-function)
             map)
   (if (featurep 'auto-complete)
       (ac-js2-setup-auto-complete-mode))

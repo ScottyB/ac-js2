@@ -43,16 +43,11 @@ definitions. Executing `M-,` will jump you back to where you were.
  * Completion of variable and function names in current scope
  * Popup documentation for variables and function names in buffer
 
-**Experimental yansippet integration with auto-complete-mode**
+**Experimental yansippet integration**
 
-Sometimes you want to expand a function's definition on completion and
-other times you just want to complete the function's name. To achieve
-this `ac-js2-expand-function` has been added to `ac-completing-map`
-bound to `C-e`.
-
-When auto-complete-mode shows a popup scroll to the completion you
-want and press `C-e` to expand it. Expansion will only work when
-yasnippet is installed (no setup is required) and for functions.
+Recently added `ac-js2-expand-function` that will expand a function's
+parameters bound to `C-c C-c`. Expansion will only work if the cursor
+is after the function.
 
 **Note:** Navigation only works if the definition is in the same file.
 
