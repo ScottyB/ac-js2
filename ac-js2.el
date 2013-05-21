@@ -579,7 +579,7 @@ the function."
             map)
   (if (featurep 'auto-complete)
       (ac-js2-setup-auto-complete-mode))
-  (add-to-list 'completion-at-point-functions 'ac-js2-completion-function)
+  (add-hook 'completion-at-point-functions 'ac-js2-completion-function nil t)
   (ac-js2-skewer-eval-wrapper (buffer-string))
   (add-hook 'before-save-hook 'ac-js2-save nil t)
   (add-hook 'skewer-js-hook 'ac-js2-on-skewer-load))
