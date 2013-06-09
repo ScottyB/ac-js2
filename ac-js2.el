@@ -67,7 +67,7 @@
 ;;
 ;; placing the cursor on `foo', `bar' or `baz' and executing M-. will
 ;; take you straight to their respective definitions. Use M-, to jump
-;; back to where you were.
+;; back to where you were. Also works for object literals.
 ;;
 ;; Recently added `ac-js2-expand-function' that will expand a function's
 ;; parameters bound to `C-c C-c`. Expansion will only work if the cursor
@@ -508,17 +508,20 @@ FUNC can be either a function node or a string starting with
 
 (defun ac-js2-find-property (list-names)
   "Find the property definition that consists of LIST-NAMES.
-Currently only the form 'foo.bar = 3' is supported opposed to
-'foo = {bar: 3}'."
+Supports navigation to 'foo.bar = 3' and 'foo = {bar: 3}'."
   (catch 'prop-found
     (js2-visit-ast-root
      js2-mode-ast
      (lambda (node endp)
        (let ((parent (js2-node-parent node)))
          (unless endp
-           (if (and (js2-prop-get-node-p node)
+           (if (or (and (js2-prop-get-node-p node)
                     (not (or (js2-elem-get-node-p parent) (js2-call-node-p parent)))
                     (equal list-names (ac-js2-build-prop-name-list node)))
+                   (and (js2-name-node-p node)
+                        (js2-object-prop-node-p parent)
+                        (string= (js2-name-node-name node)
+                                 (first list-names))))
                (throw 'prop-found node))
            t))))))
 

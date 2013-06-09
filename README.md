@@ -28,8 +28,6 @@ turned off by default, see Setup to enable these features anyway :).
 
  * Navigation commands to jump to variables, functions and object properties.
 
-Jumping to values in an object literal isn't currently supported, it
-is on my todo list though. Navigation works from anywhere along a dotted property reference.
 i.e. Given the following proprety reference:
 
 ```
