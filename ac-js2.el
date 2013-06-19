@@ -441,12 +441,13 @@ Returned format is a list where the first element is the NAME of
 the node (shown in completion candidate list) and the last
 element is the text to show as documentation."
   (let ((node (if (js2-object-prop-node-p node) (js2-object-prop-node-right node) node))
+        (name-format (replace-regexp-in-string "\"" "" name))
         (doc (if (and (js2-function-node-p node)
                       (cl-find name (js2-function-node-params node)
                                :test '(lambda (name param) (string= name (js2-name-node-name param)))))
                  "Function parameter"
                (ac-js2-format-node-doc node))))
-    `(,name . ,doc)))
+    `(,name-format . ,doc)))
 
 (defun ac-js2-format-object-node-doc (obj-node)
   "Format OBJ-NODE to display as documentation."
