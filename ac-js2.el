@@ -276,18 +276,12 @@ string contain a function prototype."
   '((candidates . ac-js2-ac-candidates)
     (document . ac-js2-ac-document)
     (prefix .  ac-js2-ac-prefix)
-    (symbol . "A")
+    (symbol . "")
     (requires . -1)))
 
 (defun ac-js2-setup-auto-complete-mode ()
   "Setup ac-js2 to be SED with auto-complete-mode."
-  ;; (ac-define-source js2
-  ;;   '((candidates . ac-js2-ac-candidates)
-  ;;     (document . ac-js2-ac-document)
-  ;;     (prefix .  ac-js2-ac-prefix)
-  ;;     (requires . -1)))
-  ;; (add-to-list 'ac-sources 'ac-source-js2)
-  (setq ac-sources (append '(ac-source-js2) ac-sources))
+  (add-to-list 'ac-sources 'ac-source-js2)
   (auto-complete-mode))
 
 ;;; Completion at point function
