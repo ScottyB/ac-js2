@@ -571,16 +571,20 @@ the function."
             (if (js2-var-init-node-p parent)
                 (js2-name-node-name (js2-var-init-node-target parent)))))))
 
+(defvar ac-js2-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "M-.") 'ac-js2-jump-to-definition)
+    (define-key map (kbd "M-,") 'pop-tag-mark)
+    (define-key map (kbd "C-c C-c") 'ac-js2-expand-function)
+    map)
+  "Keymap for `ac-js2-mode'.")
+
 ;;; Minor mode
 
 ;;;###autoload
 (define-minor-mode ac-js2-mode
   "A minor mode that provides auto-completion and navigation for Js2-mode."
-  :keymap (let ((map (make-sparse-keymap)))
-            (define-key map (kbd "M-.") 'ac-js2-jump-to-definition)
-            (define-key map (kbd "M-,") 'pop-tag-mark)
-            (define-key map (kbd "C-c C-c") 'ac-js2-expand-function)
-            map)
+  :keymap ac-js2-mode-map
   (if (featurep 'auto-complete)
       (ac-js2-setup-auto-complete-mode))
   (add-hook 'completion-at-point-functions 'ac-js2-completion-function nil t)
