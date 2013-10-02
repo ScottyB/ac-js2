@@ -36,6 +36,10 @@
 ;;
 ;; if you don't have it already to fetch packages from MELPA.
 ;;
+;; Enable ac-js2 in js2-mode as follows:
+;;
+;; (add-hook 'js2-mode-hook 'ac-js2-mode)
+;;
 ;; Ac-js2 does not require auto-complete mode but I suggest you grab
 ;; it anyway as ac-js2 is designed to work with a completion frontend.
 ;; Support for Company mode is on its way.
@@ -593,8 +597,6 @@ the function."
   (add-hook 'before-save-hook 'ac-js2-save nil t)
   (add-hook 'skewer-js-hook 'ac-js2-on-skewer-load))
 
-;;;###autoload
-(add-hook 'js2-mode-hook 'ac-js2-mode)
 
 (provide 'ac-js2)
 

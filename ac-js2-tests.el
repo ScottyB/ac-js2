@@ -31,6 +31,7 @@ temp.anotherFunction = function() { return {about: 3};}")
       (setq ac-js2-external-libraries nil)
 
       (js2-mode)
+      (ac-js2-mode t)
       (js2-parse)
 
       (insert "tem")
@@ -63,6 +64,7 @@ TODO: cover more cases"
          (insert "var testComplete = function(param1, param2) {};")
 
          (js2-mode)
+         (ac-js2-mode t)
          (js2-parse)
 
          (insert "testComplet")
