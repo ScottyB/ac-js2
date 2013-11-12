@@ -36,6 +36,10 @@
 ;;
 ;; if you don't have it already to fetch packages from MELPA.
 ;;
+;; Enable ac-js2 in js2-mode as follows:
+;;
+;; (add-hook 'js2-mode-hook 'ac-js2-mode)
+;;
 ;; Ac-js2 does not require auto-complete mode but I suggest you grab
 ;; it anyway as ac-js2 is designed to work with a completion frontend.
 ;; Support for Company mode is on its way.
@@ -571,25 +575,28 @@ the function."
             (if (js2-var-init-node-p parent)
                 (js2-name-node-name (js2-var-init-node-target parent)))))))
 
+(defvar ac-js2-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "M-.") 'ac-js2-jump-to-definition)
+    (define-key map (kbd "M-,") 'pop-tag-mark)
+    (define-key map (kbd "C-c C-c") 'ac-js2-expand-function)
+    map)
+  "Keymap for `ac-js2-mode'.")
+
 ;;; Minor mode
 
 ;;;###autoload
 (define-minor-mode ac-js2-mode
   "A minor mode that provides auto-completion and navigation for Js2-mode."
-  :keymap (let ((map (make-sparse-keymap)))
-            (define-key map (kbd "M-.") 'ac-js2-jump-to-definition)
-            (define-key map (kbd "M-,") 'pop-tag-mark)
-            (define-key map (kbd "C-c C-c") 'ac-js2-expand-function)
-            map)
+  :keymap ac-js2-mode-map
   (if (featurep 'auto-complete)
       (ac-js2-setup-auto-complete-mode))
-  (add-hook 'completion-at-point-functions 'ac-js2-completion-function nil t)
+  (set (make-local-variable 'completion-at-point-functions)
+       (cons 'ac-js2-completion-function completion-at-point-functions))
   (ac-js2-skewer-eval-wrapper (buffer-string))
   (add-hook 'before-save-hook 'ac-js2-save nil t)
   (add-hook 'skewer-js-hook 'ac-js2-on-skewer-load))
 
-;;;###autoload
-(add-hook 'js2-mode-hook 'ac-js2-mode)
 
 (provide 'ac-js2)
 
