@@ -60,6 +60,12 @@ Easiest way to get ac-js2 is to install it from MELPA. You may need this snippet
 
 if you don't have it already to fetch packages from MELPA.
 
+Enable `ac-js2` in `js2-mode` as follows:
+
+```
+(add-hook 'js2-mode-hook 'ac-js2-mode)
+```
+
 ### Dependencies
 
  * [skewer-mode](https://github.com/skeeto/skewer-mode) (MELPA)
