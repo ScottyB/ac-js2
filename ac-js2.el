@@ -145,9 +145,9 @@ Only keys of the object are returned as the other properties come
   (insert-file-contents (expand-file-name "skewer-addon.js" ac-js2-data-root))
   (and ac-js2-evaluate-calls
        (mapcar (lambda (library)
-		 (with-temp-buffer
-		   (insert-file-contents (expand-file-name library))
-		   (skewer-eval (buffer-string)
+		  (with-temp-buffer
+		    (insert-file-contents (expand-file-name library))
+		    (skewer-eval (buffer-string)
 				nil
 				:type "complete"))) ac-js2-external-libraries)))
 
