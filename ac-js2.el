@@ -239,7 +239,7 @@ otherwise use documentation obtained from skewer."
   (ac-js2-candidates))
 
 (defun ac-js2-ac-document (name)
-  "Documentation to be shown for auto-complete mode."
+  "Documentation NAME to be shown for auto-complete mode."
   (ac-js2-document name))
 
 (defun ac-js2-ac-prefix()
