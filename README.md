@@ -1,7 +1,7 @@
 # ac-js2
 
 An attempt at context sensitive auto-completion for Javascript in Emacs using
-js2-mode's parser and Skewer-mode. Inspired by the work of others on
+js2-mode's parser and Skewer-mode (requires Emacs 24.3). Inspired by the work of others on
 projects such as js2-mode, skewer-mode and js2-refactor I decided to
 add to the concept of Emacs as a Javascript IDE.
 
