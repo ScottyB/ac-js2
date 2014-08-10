@@ -122,6 +122,9 @@
 This may cause undesired side effects however it will
   provide better completions. Use at your own risk.")
 
+(defcustom ac-js2-force-reparse t
+  "Force Js2-mode to reparse buffer before fetching completion candidates.")
+
 ;;; Internal variables
 
 (defvar ac-js2-keywords '()
@@ -192,10 +195,9 @@ request object in Javacript."
     (setq skewer-queue nil)))
 
 ;; Generate candidates
-
 (defun ac-js2-candidates ()
   "Main function called to gather candidates for auto-completion."
-  (js2-reparse) ;; Make sure the AST is up to date.
+  (if ac-js2-force-reparse (js2-reparse))
   (let ((node (js2-node-parent (js2-node-at-point (1- (point)))))
         beg
         (prop-get-regex "[a-zA-Z)]\\.")
