@@ -318,7 +318,7 @@ string contain a function prototype."
                 (with-temp-buffer
                   (insert doc)
                   (js-mode)
-                  (font-lock-fontify-buffer)
+                  (font-lock-ensure)
                   (buffer-string))))))))
 
 ;;; Helper functions
@@ -439,7 +439,7 @@ object property. Returns nil if no initial value can be found."
         (ac-js2-get-function-node name scope-def)
       symbol)))
 
-;;; Completion candidate formating
+;;; Completion candidate formatting
 
 (defun ac-js2-format-node (name node)
   "Format NAME and NODE for completion.
