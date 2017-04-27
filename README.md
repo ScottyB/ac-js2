@@ -60,24 +60,27 @@ Easiest way to get ac-js2 is to install it from MELPA. You may need this snippet
 
 if you don't have it already to fetch packages from MELPA.
 
-Enable `ac-js2` in `js2-mode` as follows:
+Set up `ac-js2` for `auto-complete` like this:
 
 ```
 (add-hook 'js2-mode-hook 'ac-js2-mode)
 ```
 
+Set up `ac-js2` for `company` like this:
+
+```
+(add-to-list 'company-backends 'ac-js2-company)
+```
+
 ### Dependencies
 
  * [skewer-mode](https://github.com/skeeto/skewer-mode) (MELPA)
- * [js2-mode](https://github.com/mooz/js2-mode) (ELPA)
+ * [js2-mode](https://github.com/mooz/js2-mode) (ELPA/MELPA)
 
-Auto-complete is no longer a dependency however ac-js2 will use it if
-you have it installed. The main reason for this is to allow users to
-use their preferred completion front end.
+Optional, depending on which completion framework you want to use:
 
- * [auto-complete](https://github.com/auto-complete/auto-complete) (ELPA)
-
- For those of you who prefer Company mode, support is on its way.
+ * [auto-complete](https://github.com/auto-complete/auto-complete) (ELPA/MELPA)
+ * [company](https://github.com/company-mode/company-mode) (ELPA/MELPA)
 
 ## Setup
 
