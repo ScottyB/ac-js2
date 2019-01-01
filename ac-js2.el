@@ -218,7 +218,7 @@ request object in Javacript."
                           (ac-js2-format-node (js2-node-string (js2-object-prop-node-left elem))
                                               elem))
                         (js2-object-node-elems node))))
-      (append (mapcar 'first ac-js2-candidates)
+      (append (mapcar 'cl-first ac-js2-candidates)
               (ac-js2-skewer-completion-candidates)))
      ((js2-prop-get-node-p node)
       (setq node (js2-prop-get-node-left node))
@@ -229,13 +229,13 @@ request object in Javacript."
       (ac-js2-skewer-eval-wrapper "" `((method . ,ac-js2-method-global)))
       (append (ac-js2-skewer-completion-candidates)
               (ac-js2-add-extra-completions
-               (mapcar 'first (ac-js2-get-names-in-scope))))))))
+               (mapcar 'cl-first (ac-js2-get-names-in-scope))))))))
 
 (defun ac-js2-document (name)
   "Show documentation for NAME from local buffer if present
 otherwise use documentation obtained from skewer."
   (let* ((docs (cdr (assoc name ac-js2-candidates)))
-         (doc (if (listp docs) (first docs) docs)))
+         (doc (if (listp docs) (cl-first docs) docs)))
     (if doc doc (ac-js2-skewer-document-candidates name))))
 
 ;; Auto-complete settings
@@ -275,7 +275,7 @@ string contain a function prototype."
                   (concat "("
                           (replace-regexp-in-string "\\([a-zA-Z0-9]+\\)"
                                                     (lambda (txt) (concat "${" txt "}"))
-                                                    (second (split-string candidate "[()]")))
+                                                    (cl-second (split-string candidate "[()]")))
                           ")$0"))))))))
 
 (defun ac-js2-setup-auto-complete-mode ()
@@ -306,7 +306,7 @@ string contain a function prototype."
   (interactive (list 'interactive))
   (if (not (featurep 'company))
       (message "Company is not installed")
-    (case command
+    (cl-case command
       (interactive (company-begin-backend 'ac-js2-company))
       (prefix (when ac-js2-mode
                 (or (company-grab-symbol)
@@ -318,7 +318,10 @@ string contain a function prototype."
                 (with-temp-buffer
                   (insert doc)
                   (js-mode)
-                  (font-lock-ensure)
+                  (if (fboundp 'font-lock-ensure)
+                    (font-lock-ensure)
+                    (with-no-warnings
+                      (font-lock-fontify-buffer)))
                   (buffer-string))))))))
 
 ;;; Helper functions
@@ -397,7 +400,7 @@ points can be found for each property in the chain."
          result)
     (while scope
       (setq result (append result
-                           (loop for item in (js2-scope-symbol-table scope)
+                           (cl-loop for item in (js2-scope-symbol-table scope)
                                  if (not (assoc (car item) result))
                                  collect item)))
       (setq scope (js2-scope-parent-scope scope)))
@@ -528,7 +531,7 @@ Supports navigation to 'foo.bar = 3' and 'foo = {bar: 3}'."
                    (and (js2-name-node-p node)
                         (js2-object-prop-node-p parent)
                         (string= (js2-name-node-name node)
-                                 (first list-names))))
+                                 (cl-first list-names))))
                (throw 'prop-found node))
            t))))))
 
